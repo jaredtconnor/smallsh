@@ -1,31 +1,56 @@
 #include "smallsh.h"
 
-char * get_input(){ 
 
-    char *buffer = malloc(MAX_INPUT_LENGTH * sizeof(char));
-    char *line = malloc(MAX_INPUT_LENGTH * sizeof(char));
-    int buffer_empty = 0;
+/* #######################################################
+ * Function:   
+ *
+ * Reads in stdin and returns a char * to be parsed
+ * 
+ * params: void
+ *
+ * output: char *
+ *
+ * ######################################################## */
+int variable_expansion(char * command) { 
 
-    memset(line, '\0', sizeof(strlen(line))); 
+  char * ret = strstr(command, "$$"); 
 
-    fflush(stdout); 
-    printf(": ");
+  if (ret) { 
+    char pid[PID_LEN]; 
+    sprintf(pid, "%d", getpid());
+    printf("\nVariable expansion found - %s\n", pid);
+    // replace pid
 
-    do {
-
-        fgets(buffer, MAX_INPUT_LENGTH, stdin); 
-
-        strcat(line, buffer); 
-
-        if (line[0] == 0) { 
-            buffer_empty = 1; 
-        } else if (line[strlen(line) - 1] == '\n') { 
-            line[strlen(line) - 1] = '\0'; 
-            buffer_empty = 1;
-        }
-
-    } while (buffer_empty != 1);
-
-    free(buffer); 
-    return line; 
+  }
+  
+  return 0;
 }
+
+/* #######################################################
+ * Function:  read_input 
+ *
+ * Reads in stdin and returns a char * to be parsed
+ * 
+ * params: void
+ *
+ * output: char *
+ *
+ * ######################################################## */
+char * read_input(){ 
+	
+	printf(": ");
+	fflush(stdout);
+	
+	char * command = NULL;
+	size_t len = 0; 
+	
+	getline(&command, &len, stdin);
+	
+	//check variable expansion
+  variable_expansion(command); 
+	
+  return command;
+}
+
+
+

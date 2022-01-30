@@ -3,7 +3,9 @@
 
 int main() { 
 
-    char * command = get_input();
+    char * command = read_input();
+
+    printf("This is the received command: %s\n", command);
 
     return 0;
 }

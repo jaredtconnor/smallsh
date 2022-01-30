@@ -3,8 +3,10 @@
 #include <stdlib.h> 
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/types.h> 
+#include <sys/wait.h> 
 #include <fcntl.h>
-#include <sys/wait.h>
+#include <signal.h>
 #include <unistd.h>
 
 #ifndef SMALLSH_H
@@ -16,6 +18,7 @@ Source - https://markkevinbaltazar.medium.com/c-header-files-and-prototypes-170e
 
 #define MAX_ARGS      		512
 #define MAX_INPUT_LENGTH    2048
+#define PID_LEN   50 
 
 /* 
 #########################################
@@ -36,7 +39,8 @@ Function Prototypes
 #########################################
 */
 
-char *get_input();
+int variable_expansion(char * command);
+char * read_input();
 
 
 #endif /* SMALLSH_H */
