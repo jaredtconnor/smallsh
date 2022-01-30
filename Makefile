@@ -8,6 +8,6 @@ run:
 clear:
 	rm -f smallsh 
 
-debug:
-	valgrind -s --leak-check=yes --track-origins=yes --show-reachable=yes ./smallsh
+valgrind:
+	valgrind -s --leak-check=yes --track-origins=yes --show-reachable=yes --log-file="valgrind.txt" ./smallsh
 
