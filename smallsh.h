@@ -59,9 +59,14 @@ Function Prototypes
 #########################################
 */
 
-struct command_input_t * parse_arguments(char * command);
-int variable_expansion(char * command);
+struct command_input_t * parse_arguments(char *);
+int variable_expansion(char *);
 char * read_input();
+bool check_comment(struct command_input_t *);
+bool check_built_in_command(struct command_input_t *);
+//void execute_built_in_command(struct command_input_t *);
+
+//void change_directory(struct command_intput_t *);
 
 
 

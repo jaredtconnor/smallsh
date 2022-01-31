@@ -75,25 +75,21 @@ struct command_input_t * parse_arguments(char * command) {
      *  Date - 1/30/2021 
      *  Adapted from: 
      *  Exploration - Strings 
-     *  
      */ 
     char * token; 
-    char * found = NULL;
 
     token = strtok(command, TOKEN_DELIM);
     command_data->command = calloc(strlen(token) + 1, sizeof(char)); 
     strcpy(command_data->command, token);
 
-    // search for comment
-    found = strstr(token, "#");
-
-    if (found) { 
-      command_data->is_comment = true; 
-    } else { 
-      command_data->is_comment = false;
-    }
+    command_data->is_comment = check_comment(command_data);
 
     while (token != NULL && !command_data->is_comment) { 
+
+      // check built in
+      if(check_built_in_command(command_data)) { 
+          printf("Built in command detected\n");
+      }
 
       // check if redirect
       // if (strcmp(token, ">") == 0) { 
@@ -129,4 +125,27 @@ struct command_input_t * parse_arguments(char * command) {
 
 }
 
+bool check_comment(struct command_input_t * command_input){ 
 
+    bool result = false;
+    char * found = NULL;
+
+    found = strstr(command_input->command, "#");
+ 
+    if (found) { 
+     result = true; 
+    } 
+
+    return result; 
+}
+
+bool check_built_in_command(struct command_input_t * command_input) {
+
+  bool result = false; 
+
+  if (strcmp(command_input->command, "cd") == 0 || strcmp(command_input->command, "status") == 0){ 
+    result = true;
+  }
+
+  return result;
+}
