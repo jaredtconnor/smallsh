@@ -19,11 +19,6 @@ int main() {
         command_data = parse_arguments(command); 
         
         // 5 - Execute built in commands
-        if (command_data->is_comment) { 
-            printf("Comment command\n");
-        } else { 
-            printf("Current command: %s\n", command_data->command);
-        }
 
         // 6 - Execute general commands
 
