@@ -1,6 +1,5 @@
 #include "smallsh.h"
 
-
 /* #######################################################
  * Function: variable_expansion   
  * Searches a command line to confirm if there is '$$' 
@@ -13,16 +12,56 @@
  *  1 - int - int indicating result, 0 correct and 1 error
  *
  * ######################################################## */
-int variable_expansion(char * command) { 
+bool variable_expansion(char * command) { 
 
-  char * ret = strstr(command, "$$"); 
+  bool result = false; 
+  char pid_c[PID_LEN]; 
+  int pid = getpid(); 
+  memset(pid_c, '\0', sizeof(pid_c));
+
+  char * buffer = NULL;
+  char * current = command;
+  char * temp = NULL;
+
+  size_t dollar_len = strlen(VAR_EXPAND); 
+  size_t pid_len;
+
+  char * ret = strstr(command, VAR_EXPAND); 
 
   if (ret) { 
-    char pid[PID_LEN]; 
-    sprintf(pid, "%d", getpid());
+    result = true; 
+    sprintf(pid_c, "%d", pid);
+    buffer = malloc((strlen(command) + strlen(pid_c)) * sizeof(char));
+    pid_len = strlen(pid_c);
+    temp = &buffer[0];
+
+    for (int i = 0; i < strlen(command) - 1; i++) { 
+
+
+      char * ret_2 = strstr(current, VAR_EXPAND);
+
+      if (ret_2 == NULL) {
+        strcpy(temp, current);
+      } else { 
+
+        // Source - https://pubs.opengroup.org/onlinepubs/9699919799/strdup
+        memcpy(temp, current, ret_2 - current); 
+        temp += ret_2 - current; 
+
+        memcpy(current, pid_c, pid_len);
+        temp += pid_len; 
+
+        temp = ret_2 + dollar_len;
+
+      }
+    }
+
+    strcpy(command, buffer); 
+
   }
-  
-  return 0;
+
+  return result; 
+
 }
 
 /* #######################################################
@@ -45,9 +84,6 @@ char * read_input(){
 	
 	getline(&command, &len, stdin);
 	
-	//check variable expansion
-  variable_expansion(command); 
-	
   return command;
 }
 
@@ -68,7 +104,8 @@ char * read_input(){
 struct command_input_t * parse_arguments(char * command) { 
     
     struct command_input_t * command_data = malloc(sizeof(struct command_input_t)); 
-    int ctr = 0;
+    struct arglist_t * arglist = create_arg_list();
+    command_data->arguments = arglist; 
 
     /* 
      *  CITATION     
@@ -82,30 +119,33 @@ struct command_input_t * parse_arguments(char * command) {
     command_data->command = calloc(strlen(token) + 1, sizeof(char)); 
     strcpy(command_data->command, token);
 
-    command_data->is_comment = check_comment(command_data);
-
     while (token != NULL && !command_data->is_comment) { 
 
-      // check built in
-      if(check_built_in_command(command_data)) { 
-          printf("Built in command detected\n");
-      }
+      command_data->variablexpand = variable_expansion(command); 
 
-      // check if redirect
+
+      command_data->is_comment = check_comment(command_data);
+
+
+
       // if (strcmp(token, ">") == 0) { 
 
         // command_data->input_redirect = true;
         // command_data->arglist[ctr] = NULL; 
+        // ctr++; 
 
       // } else if (strcmp(token, "<") == 0) { 
 
         // command_data->output_redirect = true;
         // command_data->arglist[ctr] = NULL; 
+        // ctr++; 
 
       // } else { 
         // command_data->input_redirect = false; 
         // command_data->output_redirect = false; 
+        // ctr++; 
         // continue; 
+
       // }
 
 
@@ -113,10 +153,9 @@ struct command_input_t * parse_arguments(char * command) {
       // if (strcmp(token, "&") == 0) { 
         // command_data->backgroundflat = true;
         // command_data->arglist[ctr] = NULL; 
-        // continue;
+        // break;
       // } 
 
-      command_data->arglist[ctr] = token;
 
       token = strtok(NULL, TOKEN_DELIM);
     }

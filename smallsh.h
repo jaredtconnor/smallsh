@@ -1,5 +1,3 @@
-#ifndef SMALLSH_H
-#define SMALLSH_H
 
 #include <stdio.h> 
 #include <string.h> 
@@ -12,11 +10,14 @@
 #include <signal.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include "arglist.h"
 
-#define MAX_ARGS      		512
-#define MAX_INPUT_LENGTH    2048
+#pragma once
+
 #define PID_LEN   50 
 #define TOKEN_DELIM " "
+#define VAR_EXPAND "$$"
+
 
 /*
 Source - https://markkevinbaltazar.medium.com/c-header-files-and-prototypes-170ecdf526d
@@ -42,15 +43,15 @@ Data:
 struct command_input_t { 
 
     char * command; 
-    char * arglist[MAX_ARGS];
     bool exit;
     bool input_redirect; 
     bool output_redirect;
     char * source;
     char * destination;
     bool is_comment;
-    bool backgroundflat; 
-
+    bool backgroundflag; 
+    bool variablexpand; 
+    struct arglist_t * arguments; 
 };
 
 /* 
@@ -60,15 +61,12 @@ Function Prototypes
 */
 
 struct command_input_t * parse_arguments(char *);
-int variable_expansion(char *);
 char * read_input();
 bool check_comment(struct command_input_t *);
+bool variable_expansion(char *);
+bool check_background(struct command_input_t *);
+bool check_inputredirect(struct command_input_t *);
 bool check_built_in_command(struct command_input_t *);
 //void execute_built_in_command(struct command_input_t *);
 
 //void change_directory(struct command_intput_t *);
-
-
-
-
-#endif /* SMALLSH_H */

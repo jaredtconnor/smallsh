@@ -1,5 +1,4 @@
-#include "smallsh.c"
-
+#include "smallsh.h"
 
 int main() { 
 
@@ -7,6 +6,7 @@ int main() {
     bool shell_running = true;
     char * command;
     struct command_input_t * command_data;
+    bool built_in = false;
 
     while (shell_running) { 
 
@@ -19,6 +19,11 @@ int main() {
         command_data = parse_arguments(command); 
         
         // 5 - Execute built in commands
+        built_in = check_built_in_command(command_data);
+
+        if (built_in) { 
+            printf("This is a built in command\n");
+        }
 
         // 6 - Execute general commands
 
