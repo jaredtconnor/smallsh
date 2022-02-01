@@ -35,3 +35,4 @@ Function Prototypes
 struct arglist_t * create_arg_list(); 
 void add_argument(struct arglist_t*, char *); 
 char ** get_argument(struct arglist_t *);
+void print_args(struct arglist_t *);

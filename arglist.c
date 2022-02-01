@@ -26,6 +26,21 @@ void add_argument(struct arglist_t * arguments, char * argument) {
 }
 
 
+void print_args(struct arglist_t * arguments){ 
+
+    struct argnode_t * current = arguments->head;  
+
+    while (current != NULL) { 
+
+        printf("Current arg - %s\n", current->value);
+        current = current->next;
+    }
+
+    return;
+
+}
+
+
 
 
 

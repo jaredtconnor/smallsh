@@ -121,12 +121,10 @@ struct command_input_t * parse_arguments(char * command) {
 
     while (token != NULL && !command_data->is_comment) { 
 
-      command_data->variablexpand = variable_expansion(command); 
+      //command_data->variablexpand = variable_expansion(command); 
 
-
-      command_data->is_comment = check_comment(command_data);
-
-
+      //command_data->is_comment = check_comment(command_data);
+      add_argument(command_data->arguments, command);
 
       // if (strcmp(token, ">") == 0) { 
 
