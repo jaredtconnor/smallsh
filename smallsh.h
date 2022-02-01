@@ -65,7 +65,8 @@ char * read_input();
 bool check_comment(struct command_input_t *);
 bool variable_expansion(char *);
 bool check_background(struct command_input_t *);
-bool check_inputredirect(struct command_input_t *);
+bool check_inputredirect(struct command_input_t *, char *);
+bool check_outputredirect(struct command_input_t *, char *);
 bool check_built_in_command(struct command_input_t *);
 //void execute_built_in_command(struct command_input_t *);
 

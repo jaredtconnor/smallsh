@@ -37,7 +37,7 @@ int main() {
         
     }
     
-
-
+    destroylist(command_data->arguments);
+    return 1; 
 
 }

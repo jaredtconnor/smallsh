@@ -114,37 +114,31 @@ struct command_input_t * parse_arguments(char * command) {
      *  Exploration - Strings 
      */ 
     char * token; 
+    const char delim[4] = " ";
 
-    token = strtok(command, TOKEN_DELIM);
+    // get the first token and save to command
+    token = strtok(command, delim);
     command_data->command = calloc(strlen(token) + 1, sizeof(char)); 
     strcpy(command_data->command, token);
+    token = strtok(NULL, delim);
+
+    command_data->is_comment = check_comment(command_data);
+
+    // reset token to next argument to buid list
 
     while (token != NULL && !command_data->is_comment) { 
 
-      //command_data->variablexpand = variable_expansion(command); 
+      command_data->variablexpand = variable_expansion(command); 
 
-      //command_data->is_comment = check_comment(command_data);
-      add_argument(command_data->arguments, command);
-
-      // if (strcmp(token, ">") == 0) { 
-
-        // command_data->input_redirect = true;
-        // command_data->arglist[ctr] = NULL; 
-        // ctr++; 
-
-      // } else if (strcmp(token, "<") == 0) { 
-
-        // command_data->output_redirect = true;
-        // command_data->arglist[ctr] = NULL; 
-        // ctr++; 
-
-      // } else { 
-        // command_data->input_redirect = false; 
-        // command_data->output_redirect = false; 
-        // ctr++; 
-        // continue; 
-
-      // }
+      if (check_inputredirect(command_data, token)){ 
+        command_data->input_redirect = true;
+        add_argument(command_data->arguments, NULL);
+      } else if (check_outputredirect(command_data, token)) { 
+        command_data->output_redirect = true;
+        add_argument(command_data->arguments, NULL);
+      } else if(strcmp(token, " ") != 0) { 
+        add_argument(command_data->arguments, token);
+      }
 
 
       // // check if background process
@@ -154,8 +148,7 @@ struct command_input_t * parse_arguments(char * command) {
         // break;
       // } 
 
-
-      token = strtok(NULL, TOKEN_DELIM);
+      token = strtok(NULL, delim);
     }
 
     return command_data;
@@ -164,17 +157,42 @@ struct command_input_t * parse_arguments(char * command) {
 
 bool check_comment(struct command_input_t * command_input){ 
 
-    bool result = false;
-    char * found = NULL;
+  bool result = false;
+  char * found = NULL;
 
-    found = strstr(command_input->command, "#");
- 
-    if (found) { 
-     result = true; 
-    } 
+  found = strstr(command_input->command, "#");
 
-    return result; 
+  if (found) { 
+    result = true; 
+  } 
+
+  return result; 
 }
+
+bool check_inputredirect(struct command_input_t * command_input, char * token) { 
+
+  bool result = false;
+
+  if(strcmp(token, "<") == 0){ 
+    result = true;
+  }
+
+  return result;
+  
+}
+
+bool check_outputredirect(struct command_input_t * command_input, char * token) { 
+
+  bool result = false;
+
+  if(strcmp(token, ">") == 0){ 
+    result = true;
+  }
+
+  return result;
+  
+}
+
 
 bool check_built_in_command(struct command_input_t * command_input) {
 
