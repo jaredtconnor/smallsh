@@ -225,7 +225,7 @@ void execute_built_in_command(struct command_input_t * command_input) {
        }
   } else if (strcmp(command_input->command, "cd") == 0){ 
 
-    charge_directory(command_input);
+    change_directory(command_input);
 
   }
 
@@ -246,12 +246,6 @@ void change_directory(struct command_input_t * command_input){
 }
 
 
-
-
-
-
-
-}
 
 
 

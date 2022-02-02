@@ -6,7 +6,6 @@ int main() {
     bool shell_running = true;
     char * command;
     struct command_input_t * command_data;
-    bool built_in = false;
 
     while (shell_running) { 
 
@@ -38,6 +37,7 @@ int main() {
     }
     
     destroy_list(command_data->arguments);
+    exit(0);
     return 1; 
 
 }
