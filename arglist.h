@@ -37,5 +37,6 @@ struct arglist_t * create_arg_list();
 void add_argument(struct arglist_t*, char *); 
 char ** get_argument(struct arglist_t *);
 void print_args(struct arglist_t *);
-void destroylist(struct arglist_t *);
-void destroynode(struct argnode_t *);
+void destroy_list(struct arglist_t *);
+void destroy_node(struct argnode_t *);
+bool checkempty_list(struct arglist_t *); 

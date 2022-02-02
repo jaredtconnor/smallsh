@@ -2,7 +2,8 @@
 
 struct arglist_t * create_arg_list() { 
 
-    struct arglist_t * argument_list = malloc(sizeof(struct arglist_t)); 
+    struct arglist_t * argument_list = NULL; 
+    argument_list = malloc(sizeof(struct arglist_t)); 
     argument_list->size = 0; 
     argument_list->head = NULL;  
 
@@ -14,7 +15,7 @@ void add_argument(struct arglist_t * arguments, char * argument) {
 
     struct argnode_t * newNode = malloc(sizeof(struct argnode_t));
     newNode->next = NULL; 
-    newNode->value = malloc(sizeof(argument));
+    newNode->value = malloc(sizeof(char *));
     newNode->value = argument; 
 
     if (arguments->size == 0){ 
@@ -46,7 +47,7 @@ void print_args(struct arglist_t * arguments){
 
 }
 
-void destroylist(struct arglist_t * arguments){ 
+void destroy_list(struct arglist_t * arguments){ 
 
     struct argnode_t * current = arguments->head; 
     struct argnode_t * temp = current; 
@@ -55,7 +56,7 @@ void destroylist(struct arglist_t * arguments){
 
         temp = current; 
         current = current->next;
-        destroynode(temp);
+        destroy_node(temp);
 
     }
 
@@ -67,7 +68,7 @@ void destroylist(struct arglist_t * arguments){
 
 }
 
-void destroynode(struct argnode_t * argument){ 
+void destroy_node(struct argnode_t * argument){ 
 
     free(argument->value);
     free(argument);
@@ -79,5 +80,14 @@ void destroynode(struct argnode_t * argument){
 }
 
 
+bool checkempty_list(struct arglist_t * arguments){ 
 
+    bool result = false;
+
+    if (arguments->size == 0) { 
+        result = true;
+    }
+
+    return result;
+}
 

@@ -15,7 +15,6 @@
 #pragma once
 
 #define PID_LEN   50 
-#define TOKEN_DELIM " "
 #define VAR_EXPAND "$$"
 
 
@@ -51,6 +50,8 @@ struct command_input_t {
     bool is_comment;
     bool backgroundflag; 
     bool variablexpand; 
+    bool emptyargs;
+    bool builtin; 
     struct arglist_t * arguments; 
 };
 
@@ -68,6 +69,8 @@ bool check_background(struct command_input_t *);
 bool check_inputredirect(struct command_input_t *, char *);
 bool check_outputredirect(struct command_input_t *, char *);
 bool check_built_in_command(struct command_input_t *);
-//void execute_built_in_command(struct command_input_t *);
+bool check_background(struct command_input_t *);
+void execute_built_in_command(struct command_input_t *);
+void change_directory(struct command_input_t *);
 
 //void change_directory(struct command_intput_t *);

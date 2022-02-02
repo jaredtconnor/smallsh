@@ -118,17 +118,14 @@ struct command_input_t * parse_arguments(char * command) {
 
     // get the first token and save to command
     token = strtok(command, delim);
-    command_data->command = calloc(strlen(token) + 1, sizeof(char)); 
+    command_data->command = calloc(strlen(token) + 1, sizeof(char *)); 
     strcpy(command_data->command, token);
     token = strtok(NULL, delim);
 
-    command_data->is_comment = check_comment(command_data);
 
     // reset token to next argument to buid list
 
     while (token != NULL && !command_data->is_comment) { 
-
-      command_data->variablexpand = variable_expansion(command); 
 
       if (check_inputredirect(command_data, token)){ 
         command_data->input_redirect = true;
@@ -140,13 +137,10 @@ struct command_input_t * parse_arguments(char * command) {
         add_argument(command_data->arguments, token);
       }
 
-
-      // // check if background process
-      // if (strcmp(token, "&") == 0) { 
-        // command_data->backgroundflat = true;
-        // command_data->arglist[ctr] = NULL; 
-        // break;
-      // } 
+      command_data->emptyargs = checkempty_list(command_data->arguments);
+      command_data->variablexpand = variable_expansion(token); 
+      command_data->is_comment = check_comment(command_data);
+      command_data->backgroundflag = check_background(command_data);
 
       token = strtok(NULL, delim);
     }
@@ -161,6 +155,20 @@ bool check_comment(struct command_input_t * command_input){
   char * found = NULL;
 
   found = strstr(command_input->command, "#");
+
+  if (found) { 
+    result = true; 
+  } 
+
+  return result; 
+}
+
+bool check_background(struct command_input_t * command_input){ 
+
+  bool result = false;
+  char * found = NULL;
+
+  found = strstr(command_input->command, "&");
 
   if (found) { 
     result = true; 
@@ -204,3 +212,46 @@ bool check_built_in_command(struct command_input_t * command_input) {
 
   return result;
 }
+
+
+void execute_built_in_command(struct command_input_t * command_input) { 
+
+  if (strcmp(command_input->command, "status") == 0) { 
+
+    if(strcmp(command_input->arguments->head->value, "&") == 0 && 
+       command_input->arguments->size > 1){ 
+
+        //switch bg/foreground
+       }
+  } else if (strcmp(command_input->command, "cd") == 0){ 
+
+    charge_directory(command_input);
+
+  }
+
+
+}
+
+
+void change_directory(struct command_input_t * command_input){
+
+  if (command_input->arguments->size > 1){ 
+    chdir(command_input->arguments->head->value); 
+  } else { 
+    chdir(getenv("HOME"));
+  }
+
+  return;
+
+}
+
+
+
+
+
+
+
+}
+
+
+

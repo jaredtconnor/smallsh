@@ -11,6 +11,7 @@ int main() {
     while (shell_running) { 
 
         // 2 - Check background processes
+         
 
         // 3 - Read input
         command = read_input();
@@ -19,12 +20,11 @@ int main() {
         command_data = parse_arguments(command); 
         
         // 5 - Execute built in commands
-        built_in = check_built_in_command(command_data);
-
-        print_args(command_data->arguments);
-        if (built_in) { 
-            printf("This is a built in command\n");
+        if(command_data->builtin) { 
+            execute_built_in_command(command_data);
         }
+
+
 
         // 6 - Execute general commands
 
@@ -37,7 +37,7 @@ int main() {
         
     }
     
-    destroylist(command_data->arguments);
+    destroy_list(command_data->arguments);
     return 1; 
 
 }
