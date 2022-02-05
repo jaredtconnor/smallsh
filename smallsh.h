@@ -72,5 +72,7 @@ bool check_built_in_command(struct command_input_t *);
 bool check_background(struct command_input_t *);
 void execute_built_in_command(struct command_input_t *);
 void change_directory(struct command_input_t *);
+void signal_handler(int);
+void execution_fork(struct command_input_t *, int, bool);
 
 //void change_directory(struct command_intput_t *);

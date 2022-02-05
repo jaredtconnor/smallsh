@@ -1,6 +1,28 @@
 #include "smallsh.h"
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 int main() { 
+
+    struct sigaction SIGTSTP_action = {0}; 
+    struct sigaction SIGINT_action = {0}; 
+
+    SIGTSTP_action.sa_handler = signal_handler;
+    SIGTSTP_action.sa_flags = SA_RESTART; 
+    sigfillset(&SIGTSTP_action.sa_mask); 
+    sigaction(SIGTSTP, &SIGTSTP_action, NULL); 
+
 
     // 1 - Set Signals 
     bool shell_running = true;
@@ -41,3 +63,5 @@ int main() {
     return 1; 
 
 }
+
+

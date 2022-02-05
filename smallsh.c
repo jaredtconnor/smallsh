@@ -1,5 +1,10 @@
 #include "smallsh.h"
 
+
+bool BACKGROUND_PROCESSES = true; 
+pid_t spawnid = -5;
+
+
 /* #######################################################
  * Function: variable_expansion   
  * Searches a command line to confirm if there is '$$' 
@@ -149,6 +154,53 @@ struct command_input_t * parse_arguments(char * command) {
 
 }
 
+void signal_handler(int signal_no){ 
+
+
+  bool current_process = false; 
+  char message[50]; 
+  memset(message, '\0', sizeof(strlen(message)));
+
+
+  char * fg_message = "Entering forground mode"; 
+  char * bg_messgae = "Enabling background mode";
+
+  while(waitpid(spawnid, NULL, WNOHANG) == 0) { 
+    current_process = true; 
+  };
+
+  if(BACKGROUND_PROCESSES && current_process) { 
+    strcpy(message, fg_message); 
+    BACKGROUND_PROCESS = false; 
+  } else if (BACKGROUND_PROCESSES && !current_process) { 
+
+      strcpy(message, fg_message); 
+      strcat(message, ": "); 
+      BACKGROUND_PROCESSES = true; 
+  } else if (!BACKGROUND_PROCESSES && current_process) { 
+      strcpy(message, bg_messgae); 
+      BACKGROUND_PROCESSES = true;
+  } else { 
+      strcpy(message, bg_messgae); 
+      strcat(message, ": ");
+      BACKGROUND_PROCESSES = true;
+  }
+
+
+  fflush(stdout); 
+  write(STDOUT_FILENO, message, strlen(message)); 
+
+  return;
+
+}
+
+
+
+
+
+
+
+
 bool check_comment(struct command_input_t * command_input){ 
 
   bool result = false;
@@ -246,6 +298,63 @@ void change_directory(struct command_input_t * command_input){
 }
 
 
+void execute_command(struct command_input_t * command_input){ 
+
+  pid_t spawnPID; 
+  //pid_t waitPID; 
+
+  spawnPID = fork();
+
+  switch (spawnPID)
+  {
+  case -1:
+    perror("ERROR: fork process failed\n");
+    exit(1); 
+    break;
+
+  case 0: // child process works
+    fflush(stdout); 
+
+    if(command_input->input_redirect) { 
 
 
+
+
+
+
+    } 
+
+    if(command_input->output_redirect) { 
+
+
+
+    }
+
+    if(command_input->backgroundflag) { 
+      
+
+
+    }
+
+    if(!command_input->backgroundflag) { 
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+  default:
+    break;
+  }
+
+  return; 
+
+}
 
