@@ -2,50 +2,60 @@
 
 int main() { 
 
-    // struct sigaction SIGTSTP_action = {0}; 
-    // SIGTSTP_action.sa_handler = signal_handler;
-    // SIGTSTP_action.sa_flags = SA_RESTART; 
-    // sigfillset(&SIGTSTP_action.sa_mask); 
-    // sigaction(SIGTSTP, &SIGTSTP_action, NULL); 
-
+    struct command_input_t * command_data;
+    int child_processes[200];
+    int status = 0;
 
     // 1 - Set Signals 
+    struct sigaction SIGINT_action = {0};
+    SIGINT_action.sa_handler = SIG_IGN; 
+    sigfillset(&SIGINT_action.sa_mask); 
+    SIGINT_action.sa_flags = 0; 
+    sigaction(SIGINT, &SIGINT_action, NULL);  
+
+    struct sigaction SIGTSTP_action = {0}; 
+    SIGTSTP_action.sa_handler = signal_handler;
+    sigfillset(&SIGTSTP_action.sa_mask); 
+    SIGTSTP_action.sa_flags = 0;
+    sigaction(SIGTSTP, &SIGTSTP_action, NULL); 
+
     char * command = read_input();
-    bool shell_running = check_exit(command);
-    struct command_input_t * command_data;
-    int exitcode = 0;
-    bool foregroundMode; 
+    bool shell_running = true;
 
     while (shell_running) { 
 
-        // 4 - Parse arguments 
         command_data = parse_arguments(command); 
-        
-        // 5 - Execute built in commands
-        // 7 - Input/output redirection
-        // if(command_data->builtin && !command_data->is_comment) { 
+        command_data->builtin = check_built_in_command(command_data);
 
-            // execute_built_in_command(command_data, &exitcode, &foregroundMode);
+        if (command_data->is_comment == true) { 
+            continue; 
+        } 
 
+        else if (command_data->exit == true) { 
 
-        // } else if (!command_data->is_comment) { 
+            shell_running = false; 
 
-                    // execution_fork(command_data,
-                                   // &exitcode, 
-                                   // &foregroundMode);
-        // }
+            for (int i = 0; i < 200; i++) { 
 
-        execute_foreground(command_data, &exitcode, &foregroundMode); 
+                if(child_processes[i]) { 
 
-        free(command); 
-        destroy_list(command_data->arguments);
+                    kill(child_processes[i], SIGTERM); 
+                    child_processes[i] = waitpid(child_processes[i], &status, WNOHANG); 
+                }
+            }
+        }
 
+        else if (command_data->builtin == true) { 
 
-        print_background_process(); 
+            execute_built_in_command(command_data, &status);
 
+        }
+
+        else { 
+            execute_command(command_data, &status, child_processes, &SIGINT_action); 
+        }
 
         command = read_input();
-        shell_running = check_exit(command);
     } 
 
     // signal(SIGQUIT, SIG_IGN); 
