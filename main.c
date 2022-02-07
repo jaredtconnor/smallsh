@@ -3,7 +3,6 @@
 int main() { 
 
     struct command_input_t * command_data;
-    bool foregroundMode = false; 
     int child_processes[200];
     int status = 0;
 
@@ -26,26 +25,34 @@ int main() {
     while (shell_running) { 
 
         command_data = parse_arguments(command); 
-        
-        // if(command_data->builtin && !command_data->is_comment) { 
 
-            // execute_built_in_command(command_data, &exitcode, &foregroundMode);
+        if (command_data->is_comment == true) { 
+            continue; 
+        } 
 
+        else if (command_data->exit == true) { 
 
-        // } else if (!command_data->is_comment) { 
+            shell_running = false; 
 
-                    // execute_foreground(command_data, &exitcode); 
+            for (int i = 0; i < 200; i++) { 
 
-                    // //execution_fork(command_data,
-                                   // //&exitcode, 
-                                   // //&foregroundMode);
-        // }
+                if(child_processes[i]) { 
 
-        // free(command); 
-        // destroy_list(command_data->arguments);
+                    kill(child_processes[i], SIGTERM); 
+                    child_processes[i] = waitpid(child_processes[i], &status, WNOHANG); 
+                }
+            }
+        }
 
-        // print_background_process(); 
-        execute_foreground(command_data, &status, child_processes, &SIGINT_action); 
+        else if (command_data->builtin == true) { 
+
+            execute_built_in_command(command_data, &status);
+
+        }
+
+        else { 
+            execute_command(command_data, &status, child_processes, &SIGINT_action); 
+        }
 
         command = read_input();
         shell_running = check_exit(command);
