@@ -25,6 +25,7 @@ int main() {
     while (shell_running) { 
 
         command_data = parse_arguments(command); 
+        command_data->builtin = check_built_in_command(command_data);
 
         if (command_data->is_comment == true) { 
             continue; 
@@ -55,7 +56,6 @@ int main() {
         }
 
         command = read_input();
-        shell_running = check_exit(command);
     } 
 
     // signal(SIGQUIT, SIG_IGN); 
