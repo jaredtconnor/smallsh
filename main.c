@@ -20,7 +20,7 @@ int main() {
     sigaction(SIGTSTP, &SIGTSTP_action, NULL); 
 
     char * command = read_input();
-    bool shell_running = check_exit(command);
+    bool shell_running = true;
 
     while (shell_running) { 
 

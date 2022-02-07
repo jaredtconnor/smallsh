@@ -57,10 +57,10 @@ bool check_outputredirect(struct command_input_t * command_input, char * token) 
 
 bool check_exit(char * token) { 
 
-  bool result = true; 
+  bool result = false; 
 
-  if(strcmp(token, "exit") == -1){ 
-    result = false;
+  if(strcmp(token, "exit") == 0){ 
+    result = true;
   }
 
   return result; 
@@ -152,15 +152,13 @@ struct command_input_t * parse_arguments(char * command) {
      *  Exploration - Strings 
      */ 
     char * token; 
-    const char delim[4] = " ";
 
     // get the first token and save to command
-    token = strtok(command, delim);
+    token = strtok(command, " ");
     command_data->command = calloc(strlen(token) + 1, sizeof(char *)); 
     strcpy(command_data->command, token);
     token = strtok(NULL, delim);
-
-    // reset token to next argument to buid list
+    command_data->exit = check_exit(command_data->command);
 
     while (token != NULL && !command_data->is_comment) { 
 
