@@ -256,7 +256,6 @@ bool check_outputredirect(struct command_input_t * command_input, char * token) 
   
 }
 
-
 bool check_exit(char * token) { 
 
   bool result = true; 
@@ -269,31 +268,6 @@ bool check_exit(char * token) {
 
 }
 
-
-void set_redirect(struct command_input_t * command_input, bool input_redirect, bool output_redirect) { 
-
-
-
-
-
-
-
-
-
-
-
-
-  return; 
-
-}
-
-
-
-
-
-
-
-
 bool check_built_in_command(struct command_input_t * command_input) {
 
   bool result = false; 
@@ -304,7 +278,6 @@ bool check_built_in_command(struct command_input_t * command_input) {
 
   return result;
 }
-
 
 void execute_built_in_command(struct command_input_t * command_input, int * exit_code, bool * foreground_permitted) { 
 
@@ -327,7 +300,6 @@ void execute_built_in_command(struct command_input_t * command_input, int * exit
 
 }
 
-
 void change_directory(struct command_input_t * command_input){
 
   if (command_input->arguments->size > 1){ 
@@ -339,7 +311,6 @@ void change_directory(struct command_input_t * command_input){
   return;
 
 }
-
 
 void show_status(struct command_input_t * command_input, int* exit_code, bool * foreground_permitted) { 
 
@@ -355,8 +326,6 @@ void show_status(struct command_input_t * command_input, int* exit_code, bool * 
   return;
 
 }
-
-
 
 void execution_fork(struct command_input_t * command_input, int * exit_code, bool * foreground_permited) { 
 
@@ -381,7 +350,7 @@ void execution_fork(struct command_input_t * command_input, int * exit_code, boo
   } else { 
 
     //execute_foreground(command_input, exit_code, foreground_permited);
-    execute_foreground(command_input, exit_code);
+    //execute_foreground(command_input, exit_code);
 
   }
 
@@ -389,116 +358,97 @@ void execution_fork(struct command_input_t * command_input, int * exit_code, boo
 
 }
 
-void execute_foreground(struct command_input_t * command_input, int * exit_status){ 
+void execute_foreground(struct command_input_t * command_input, int * status, int * bg_processes, struct sigaction * sigint_action){ 
 
-  int childstatus = -1;
-  pid_t spawnPID; 
-  pid_t waitPID; 
-  char ** arugments = get_arguments(command_input->arguments);
+  char ** arguments = get_arguments(command_input->arguments); 
+  pid_t spawnpid;
+  spawnpid = fork(); 
 
-  spawnPID = fork();
-
-  switch (spawnPID) {
+  switch (spawnpid)
+  {
   case -1:
 
-    perror("fork() fialed \n");
+    perror("ERROR - fork() failed \n");
     exit(1);
+
     break;
 
   case 0: 
-    fflush(stdout); 
 
+    if (command_input->backgroundflag == false) { 
+      sigint_action->sa_handler = SIG_DFL;
+      sigaction(SIGINT, sigint_action, NULL);
+    }  
 
-    if(command_input->input_redirect) { 
+    printf("Command is %s\n", command_input->command);
+    execvp(command_input->command, arguments);
+    perror("excevp error\n");
+    break;
+
+  default: // parent process
+
+    // background process 
+    if (command_input->backgroundflag) { 
       
-      int fileread = open(command_input->infile, O_RDONLY); 
+      printf("background pid is %d\n", spawnpid);
+      fflush(stdout); 
+      spawnpid = waitpid(spawnpid, status, WNOHANG); 
 
-      if (fileread == -1) { 
-        printf("Cannot open file - %d \n", fileread); 
+      int i = 0; 
+      while(bg_processes[i] != NULL) { 
+        i++; 
+      }
+
+      bg_processes[i] = spawnpid;
+
+    } else { // foreground process
+
+      spawnpid = waitpid(spawnpid, status, 0); 
+
+
+      if(WTERMSIG(*status)) { 
+        printf("Terminated by signal %d\n", WTERMSIG(*status)); 
         fflush(stdout); 
-        exit(1);
-        
-      } else { 
+      }
 
-        if (dup2(fileread, STDIN_FILENO) == -1) { 
-          perror("file read error\n");
+
+      sigint_action->sa_handler = SIG_IGN; 
+      sigaction(SIGINT, sigint_action, NULL);
+
+    }
+
+
+    while ((spawnpid = waitpid(-1, status, WNOHANG)) > 0) { 
+
+      if (WIFEXITED(*status)) { 
+        printf("background pid %d is done: exit value was %d\n", spawnpid, WEXITSTATUS(*status)); 
+        fflush(stdout); 
+
+      } else { 
+        printf("background pid %d is done: terminated by signal %d\n", spawnpid, WTERMSIG(*status)); 
+      }
+
+      for (int i = 0; i<200; i++) { 
+
+        if(bg_processes[i] == spawnpid) { 
+          bg_processes[i] = NULL; 
         }
-
-        close(fileread);
-
-      }
-    } 
-
-    if(command_input->output_redirect) { 
-      int filewrite = open(command_input->outfile, 0644); 
-
-      if (filewrite == -1) { 
-        printf("Cannot open file - %d \n", filewrite); 
-        fflush(stdout); 
-        exit(1);
-        
-      } else { 
-
-        if (dup2(filewrite, STDIN_FILENO) == -1) { 
-          perror("file read error\n");
-        }
-
-        close(filewrite);
-
       }
     }
-
-    //check background flag
-
-    if (execvp(command_input->command, arugments)){ 
-      perror(command_input->command); 
-      exit(1);
-    }
-
-  default:
-
-    if (!BACKGROUND_PROCESSES) {
-
-      do { 
-
-          waitPID = waitpid(spawnPID, &childstatus, WUNTRACED);
-
-          if (waitPID == -1) { 
-            perror("waitpid error\n");
-            exit(1);
-          }
-
-          if (WIFSIGNALED(childstatus)) {
-            printf("Terminated by signal %d\n", WTERMSIG(childstatus));
-            fflush(stdout); 
-          }
-
-          if (WIFSTOPPED(childstatus)) { 
-            printf("Stopped by singal %d\n", WSTOPSIG(childstatus));
-          }
-
-        } while (!WIFEXITED(childstatus) && !WIFSIGNALED(childstatus));
-
-      } else { 
-
-        printf("Background pid is %d\n", spawnPID);  
-        fflush(stdout); 
-
-      }
-    }
+  }
   return;
 }
 
 void execute_background(struct command_input_t * command_input) { 
 
 
-  signal(SIGINT, SIG_IGN); 
-  signal(SIGTSTP, SIG_IGN); 
+  // signal(sigint, sig_ign); 
+  // signal(sigtstp, sig_ign); 
 
   int * pid_process = malloc(sizeof(int)); 
   * pid_process = getpid(); 
 
-  // FILE * file_in; 
+  // file * file_in; 
   // FILE * file_out; 
   char ** arguments;
 

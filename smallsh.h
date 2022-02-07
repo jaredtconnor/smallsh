@@ -82,6 +82,6 @@ void show_status(struct command_input_t *, int *, bool *);
 void background_process(); 
 void execution_fork(struct command_input_t *, int *, bool *);
 void execute_background(struct command_input_t *);
-void execute_foreground(struct command_input_t *, int *);
+void execute_foreground(struct command_input_t *, int *, int *, struct sigaction *);
 void print_background_process();
 //void change_directory(struct command_intput_t *);
