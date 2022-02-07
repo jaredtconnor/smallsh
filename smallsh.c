@@ -257,10 +257,10 @@ bool check_outputredirect(struct command_input_t * command_input, char * token) 
 
 bool check_exit(char * token) { 
 
-  bool result = false; 
+  bool result = true; 
 
   if(strcmp(token, "exit") == 0){ 
-    result = true;
+    result = false;
   }
 
   return result; 
