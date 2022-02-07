@@ -30,7 +30,8 @@ bool variable_expansion(char * command) {
   size_t dollar_len = strlen(VAR_EXPAND); 
   size_t pid_len;
 
-  char * ret = strstr(command, VAR_EXPAND); 
+  char * ret = NULL; 
+  ret = strstr(command, VAR_EXPAND); 
 
   if (ret) { 
     result = true; 
@@ -131,21 +132,31 @@ struct command_input_t * parse_arguments(char * command) {
     while (token != NULL && !command_data->is_comment) { 
 
       if (check_inputredirect(command_data, token)){ 
+
         command_data->input_redirect = true;
-        //add_argument(command_data->arguments, NULL);
-        //command_data->input_redirect_location = command_data->arguments->size;
+        command_data->infile = strtok(NULL, delim); 
+        token = strtok(NULL, delim); 
+
       } else if (check_outputredirect(command_data, token)) { 
+
         command_data->output_redirect = true;
-        //add_argument(command_data->arguments, NULL);
-        //command_data->input_redirect_location = command_data->arguments->size + 1;
-      } else if(strcmp(token, " ") != 0) { 
-        add_argument(command_data->arguments, token);
+        command_data->outfile = strtok(NULL, delim); 
+        token = strtok(NULL, delim); 
+
+      } else { 
+
+        command_data->emptyargs = checkempty_list(command_data->arguments);
+        command_data->variablexpand = variable_expansion(token); 
+        command_data->is_comment = check_comment(command_data);
+        command_data->backgroundflag = check_background(command_data);
+
+        if (!command_data->emptyargs && !command_data->is_comment) { 
+
+          add_argument(command_data->arguments, token);
+
+        }
       }
 
-      command_data->emptyargs = checkempty_list(command_data->arguments);
-      command_data->variablexpand = variable_expansion(token); 
-      command_data->is_comment = check_comment(command_data);
-      command_data->backgroundflag = check_background(command_data);
 
       token = strtok(NULL, delim);
     }
@@ -375,7 +386,8 @@ void execution_fork(struct command_input_t * command_input, int * exit_code, boo
       }
   } else { 
 
-    execute_foreground(command_input, exit_code, foreground_permited);
+    //execute_foreground(command_input, exit_code, foreground_permited);
+    execute_foreground(command_input, exit_code);
 
   }
 
@@ -384,84 +396,106 @@ void execution_fork(struct command_input_t * command_input, int * exit_code, boo
 }
 
 
-void execute_foreground(struct command_input_t * command_input, int * exit_code, bool * foreground_permited){ 
-  
-  int childstatus = -1; 
-  //FILE * file_in; 
-  //FILE * file_out; 
-  spawnpid = -5; 
-  char ** arguments;
-  pid_t spawnpid_2 = -5;
+void execute_foreground(struct command_input_t * command_input, int * exit_status){ 
 
-  spawnpid_2 = fork();
+  int childstatus = -1;
+  pid_t spawnPID; 
+  pid_t waitPID; 
+  char ** arugments = get_arguments(command_input->arguments);
 
-  switch (spawnpid_2)
+  spawnPID = fork();
+
+  switch (spawnPID)
   {
   case -1:
 
-    perror("ERROR failed to spawn");
+    perror("fork() fialed \n");
     exit(1);
     break;
 
   case 0: 
-
-   // Check input redirect
-
-
-
-
-   // Check output redirect
-
-  arguments = get_arguments(command_input->arguments);
-
-  signal(SIGINT, SIG_DFL); 
-  signal(SIGTSTP, SIG_IGN); 
-
-  *exit_code = execvp(command_input->command, arguments);
-
-  if(*exit_code == -1) { 
     fflush(stdout); 
-    printf("Error\n");
-  }
 
 
-  *exit_code = 1; 
+    if(command_input->input_redirect) { 
 
-  // memory clean up required; 
 
-  exit(1);  
+    }
+
+    if(command_input->output_redirect) { 
+
+
+
+
+    }
+
+    if(command_input->backgroundflag) { 
+
+
+
+
+
+    }
+
+
+    if(!command_input->backgroundflag) { 
+
+
+
+
+    }
+
+    if(BACKGROUND_PROCESSES) { 
+
+
+    }
+
+
+    if (execvp(command_input->command, arugments)){ 
+      perror(command_input->command); 
+      exit(1);
+    }
 
   default:
-    // Parent
 
-    break;
-  }
+    if (!BACKGROUND_PROCESSES) {
+
+      do { 
+
+          waitPID = waitpid(spawnPID, &childstatus, WUNTRACED);
+
+          if (waitPID == -1) { perror("WaitPID ERROR");
+            perror("waitpid error\n");
+            exit(1);
+          }
+
+          if (WIFSIGNALED(childstatus)) {
+            printf("Terminated by signal %d\n", WTERMSIG(childstatus));
+            fflush(stdout); 
+          }
+
+          if (WIFSTOPPED(childstatus)) { 
+            printf("Stopped by singal %d\n", WSTOPSIG(childstatus));
+
+          }
+
+        } while (!WIFEXITED(childstatus) && !WIFSIGNALED(childstatus));
+
+      } else { 
+
+        //printf("Background pid is %d\n", spawnPID); 
+        fflush(stdout); 
+
+      }
 
 
-  waitpid(spawnpid, &childstatus, 0);
+
+    }
 
 
-  if(WIFEXITED(childstatus)) { 
 
-    *foreground_permited = false; 
-    *exit_code = WEXITSTATUS(childstatus); 
-
-  } else if (WIFSIGNALED(childstatus)) { 
-
-    int termsig = WTERMSIG(childstatus); 
-    fflush(stdout);
-    printf("Terminated child %d\n", termsig);
-
-    *foreground_permited = true; 
-    *exit_code = termsig; 
-
-  }
-
-  return;
-
+  return 0;
 }
-
-
 
 void execute_background(struct command_input_t * command_input) { 
 
@@ -488,15 +522,10 @@ void execute_background(struct command_input_t * command_input) {
 
 }
 
-
 void print_background_process() { 
 
-
   int childstatus = -1; 
-
-
   int child_pid =  waitpid(-1, &childstatus, WNOHANG); 
-
 
   while (child_pid > 0) { 
 

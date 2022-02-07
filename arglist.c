@@ -49,20 +49,28 @@ void print_args(struct arglist_t * arguments){
 
 void destroy_list(struct arglist_t * arguments){ 
 
-    struct argnode_t * current = arguments->head; 
-    struct argnode_t * temp = current; 
+    if(arguments->size == 0 ) { 
 
-    while(current) { 
 
-        temp = current; 
-        current = current->next;
-        destroy_node(temp);
+    } else { 
+
+        struct argnode_t * current = arguments->head; 
+        struct argnode_t * temp = current; 
+
+        while(current) { 
+
+            temp = current; 
+            current = current->next;
+            destroy_node(temp);
+
+        }
+
+        current = NULL; 
+        temp = NULL; 
+        free(arguments);
+
 
     }
-
-    current = NULL; 
-    temp = NULL; 
-    free(arguments);
 
     return; 
 
