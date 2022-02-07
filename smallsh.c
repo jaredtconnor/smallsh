@@ -4,7 +4,6 @@
 bool BACKGROUND_PROCESSES = true; 
 pid_t spawnpid = -5;
 
-
 /* #######################################################
  * Function: variable_expansion   
  * Searches a command line to confirm if there is '$$' 
@@ -392,10 +391,11 @@ void execute_foreground(struct command_input_t * command_input, int * exit_code,
   //FILE * file_out; 
   spawnpid = -5; 
   char ** arguments;
+  pid_t spawnpid_2 = -5;
 
-  spawnpid = fork();
+  spawnpid_2 = fork();
 
-  switch (spawnpid)
+  switch (spawnpid_2)
   {
   case -1:
 
