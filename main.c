@@ -44,6 +44,7 @@ int main() {
         // destroy_list(command_data->arguments);
 
         // print_background_process(); 
+        execute_foreground(command_data, &exitcode); 
 
         command = read_input();
         shell_running = check_exit(command);

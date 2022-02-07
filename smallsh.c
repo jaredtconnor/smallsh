@@ -204,12 +204,6 @@ void signal_handler(int signal_no){
 }
 
 
-
-
-
-
-
-
 bool check_comment(struct command_input_t * command_input){ 
 
   bool result = false;
@@ -395,7 +389,6 @@ void execution_fork(struct command_input_t * command_input, int * exit_code, boo
 
 }
 
-
 void execute_foreground(struct command_input_t * command_input, int * exit_status){ 
 
   int childstatus = -1;
@@ -405,8 +398,7 @@ void execute_foreground(struct command_input_t * command_input, int * exit_statu
 
   spawnPID = fork();
 
-  switch (spawnPID)
-  {
+  switch (spawnPID) {
   case -1:
 
     perror("fork() fialed \n");
@@ -418,38 +410,45 @@ void execute_foreground(struct command_input_t * command_input, int * exit_statu
 
 
     if(command_input->input_redirect) { 
+      
+      int fileread = open(command_input->infile, O_RDONLY); 
 
+      if (fileread == -1) { 
+        printf("Cannot open file - %d \n", fileread); 
+        fflush(stdout); 
+        exit(1);
+        
+      } else { 
 
-    }
+        if (dup2(fileread, STDIN_FILENO) == -1) { 
+          perror("file read error\n");
+        }
+
+        close(fileread);
+
+      }
+    } 
 
     if(command_input->output_redirect) { 
+      int filewrite = open(command_input->outfile, 0644); 
 
+      if (filewrite == -1) { 
+        printf("Cannot open file - %d \n", filewrite); 
+        fflush(stdout); 
+        exit(1);
+        
+      } else { 
 
+        if (dup2(filewrite, STDIN_FILENO) == -1) { 
+          perror("file read error\n");
+        }
 
+        close(filewrite);
 
+      }
     }
 
-    if(command_input->backgroundflag) { 
-
-
-
-
-
-    }
-
-
-    if(!command_input->backgroundflag) { 
-
-
-
-
-    }
-
-    if(BACKGROUND_PROCESSES) { 
-
-
-    }
-
+    //check background flag
 
     if (execvp(command_input->command, arugments)){ 
       perror(command_input->command); 
@@ -464,7 +463,7 @@ void execute_foreground(struct command_input_t * command_input, int * exit_statu
 
           waitPID = waitpid(spawnPID, &childstatus, WUNTRACED);
 
-          if (waitPID == -1) { perror("WaitPID ERROR");
+          if (waitPID == -1) { 
             perror("waitpid error\n");
             exit(1);
           }
@@ -476,25 +475,18 @@ void execute_foreground(struct command_input_t * command_input, int * exit_statu
 
           if (WIFSTOPPED(childstatus)) { 
             printf("Stopped by singal %d\n", WSTOPSIG(childstatus));
-
           }
 
         } while (!WIFEXITED(childstatus) && !WIFSIGNALED(childstatus));
 
       } else { 
 
-        //printf("Background pid is %d\n", spawnPID); 
+        printf("Background pid is %d\n", spawnPID);  
         fflush(stdout); 
 
       }
-
-
-
     }
-
-
-
-  return 0;
+  return;
 }
 
 void execute_background(struct command_input_t * command_input) { 
