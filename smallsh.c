@@ -3,12 +3,13 @@
 bool BLOCKBACKGROUND = true; 
 //pid_t spawnpid = -5;
 
-bool check_comment(struct command_input_t * command_input){ 
+
+bool check_comment(char * token){ 
 
   bool result = false;
   char * found = NULL;
 
-  found = strstr(command_input->command, "#");
+  found = strstr(token, "#");
 
   if (found) { 
     result = true; 
@@ -17,12 +18,12 @@ bool check_comment(struct command_input_t * command_input){
   return result; 
 }
 
-bool check_background(struct command_input_t * command_input){ 
+bool check_background(char * token){ 
 
   bool result = false;
   char * found = NULL;
 
-  found = strstr(command_input->command, "&");
+  found = strstr(token, "&");
 
   if (found) { 
     result = true; 
@@ -123,6 +124,16 @@ char * read_input(){
   size_t len = 0; 
   
   getline(&command, &len, stdin);
+
+  for (int i = 0; i < len; i++) { 
+
+    if(strcmp(&command[i], "\n") == 0) { 
+
+      strcpy(&command[i], "");
+      break;
+
+    }
+  }
   
   return command;
 }
@@ -145,51 +156,70 @@ struct command_input_t * parse_arguments(char * command) {
     struct arglist_t * arglist = create_arg_list();
     command_data->arguments = arglist; 
 
-    /* 
-     *  CITATION     
-     *  Date - 1/30/2021 
-     *  Adapted from: 
-     *  Exploration - Strings 
-     */ 
     char * token; 
+    char * saveptr; 
 
     // get the first token and save to command
-    token = strtok(command, " ");
+    token = strtok_r(command, " ", &saveptr);
     command_data->command = calloc(strlen(token) + 1, sizeof(char *)); 
     strcpy(command_data->command, token);
-    token = strtok(NULL, delim);
-    command_data->exit = check_exit(command_data->command);
+    add_argument(command_data->arguments, token);
+    command_data->exit = check_exit(token);
+    command_data->is_comment = check_comment(token);
 
-    while (token != NULL && !command_data->is_comment) { 
+    token = strtok_r(NULL, " ", &saveptr);
+    //command_data->variablexpand = variable_expansion(command_data, token); 
+    command_data->emptyargs = checkempty_list(command_data->arguments);
+
+    while (token != NULL && command_data->is_comment) { 
 
       if (check_inputredirect(command_data, token)){ 
 
         command_data->input_redirect = true;
-        command_data->infile = strtok(NULL, delim); 
-        token = strtok(NULL, delim); 
+        command_data->infile = calloc(strlen(token) + 1, sizeof(char)); 
+        strcpy(command_data->infile, token); 
 
       } else if (check_outputredirect(command_data, token)) { 
 
         command_data->output_redirect = true;
-        command_data->outfile = strtok(NULL, delim); 
-        token = strtok(NULL, delim); 
+        command_data->outfile = calloc(strlen(token) + 1, sizeof(char)); 
+        strcpy(command_data->outfile, token); 
+
+      } else if (check_background(token) == true){ 
+
+        command_data->backgroundflag = true;
 
       } else { 
 
-        command_data->emptyargs = checkempty_list(command_data->arguments);
-        command_data->is_comment = check_comment(command_data);
-        command_data->backgroundflag = check_background(command_data);
-        command_data->variablexpand = variable_expansion(command_data, token); 
+        add_argument(command_data->arguments, token);
 
-        if (!command_data->emptyargs && !command_data->is_comment) { 
-
-          add_argument(command_data->arguments, token);
-
-        }
       }
 
+      token = strtok_r(NULL, " ", &saveptr);
+    }
 
-      token = strtok(NULL, delim);
+
+    if (command_data->backgroundflag == true) { 
+
+      char * devNull = "/dev/null";
+
+      if(command_data->input_redirect == true) { 
+
+        command_data->infile = calloc(strlen(devNull) + 1, sizeof(char));
+        strcpy(command_data->infile, devNull); 
+      }
+
+      if(command_data->output_redirect == true) { 
+
+        command_data->outfile = calloc(strlen(devNull) + 1, sizeof(char));
+        strcpy(command_data->outfile, devNull); 
+      }
+    }
+
+    if (BLOCKBACKGROUND = true) { 
+
+      command_data->backgroundflag = false; 
+
     }
 
     return command_data;

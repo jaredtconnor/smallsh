@@ -65,14 +65,13 @@ Function Prototypes
 struct command_input_t * parse_arguments(char *);
 char * read_input();
 void signal_handler(int);
-bool check_comment(struct command_input_t *);
+bool check_comment(char *);
 bool variable_expansion(struct command_input_t *, char *);
-bool check_background(struct command_input_t *);
+bool check_background(char *);
 bool check_inputredirect(struct command_input_t *, char *);
 bool check_outputredirect(struct command_input_t *, char *);
 void set_redirect(struct command_input_t *, bool, bool);
 bool check_built_in_command(struct command_input_t *);
-bool check_background(struct command_input_t *);
 bool check_exit(char *);
 void execute_built_in_command(struct command_input_t *, int *);
 void change_directory(struct command_input_t *);
