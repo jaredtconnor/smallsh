@@ -2,7 +2,7 @@
 
 
 bool BACKGROUND_PROCESSES = true; 
-pid_t SPAWNPID = -5;
+pid_t spawnpid = -5;
 
 
 /* #######################################################
@@ -157,7 +157,6 @@ struct command_input_t * parse_arguments(char * command) {
 
 void signal_handler(int signal_no){ 
 
-  pid_t spawnid = -5;
   bool current_process = false; 
   char message[50]; 
   memset(message, '\0', sizeof(strlen(message)));
@@ -166,7 +165,7 @@ void signal_handler(int signal_no){
   char * fg_message = "Entering forground mode"; 
   char * bg_messgae = "Enabling background mode";
 
-  while(waitpid(spawnid, NULL, WNOHANG) == 0) { 
+  while(waitpid(spawnpid, NULL, WNOHANG) == 0) { 
     current_process = true; 
   };
 
@@ -186,7 +185,6 @@ void signal_handler(int signal_no){
       strcat(message, ": ");
       BACKGROUND_PROCESSES = true;
   }
-
 
   fflush(stdout); 
   write(STDOUT_FILENO, message, strlen(message)); 
@@ -392,12 +390,12 @@ void execute_foreground(struct command_input_t * command_input, int * exit_code,
   int childstatus = -1; 
   //FILE * file_in; 
   //FILE * file_out; 
-  pid_t spawn = -5; 
+  spawnpid = -5; 
   char ** arguments;
 
-  spawn = fork();
+  spawnpid = fork();
 
-  switch (spawn)
+  switch (spawnpid)
   {
   case -1:
 
@@ -440,7 +438,7 @@ void execute_foreground(struct command_input_t * command_input, int * exit_code,
   }
 
 
-  waitpid(spawn, &childstatus, 0);
+  waitpid(spawnpid, &childstatus, 0);
 
 
   if(WIFEXITED(childstatus)) { 
