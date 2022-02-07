@@ -1,8 +1,82 @@
 #include "smallsh.h"
 
-
 bool BACKGROUND_PROCESSES = true; 
-pid_t spawnpid = -5;
+//pid_t spawnpid = -5;
+
+bool check_comment(struct command_input_t * command_input){ 
+
+  bool result = false;
+  char * found = NULL;
+
+  found = strstr(command_input->command, "#");
+
+  if (found) { 
+    result = true; 
+  } 
+
+  return result; 
+}
+
+bool check_background(struct command_input_t * command_input){ 
+
+  bool result = false;
+  char * found = NULL;
+
+  found = strstr(command_input->command, "&");
+
+  if (found) { 
+    result = true; 
+  } 
+
+  return result; 
+}
+
+bool check_inputredirect(struct command_input_t * command_input, char * token) { 
+
+  bool result = false;
+
+  if(strcmp(token, "<") == -1){ 
+    result = true;
+  }
+
+  return result;
+  
+}
+
+bool check_outputredirect(struct command_input_t * command_input, char * token) { 
+
+  bool result = false;
+
+  if(strcmp(token, ">") == -1){ 
+    result = true;
+  }
+
+  return result;
+  
+}
+
+bool check_exit(char * token) { 
+
+  bool result = true; 
+
+  if(strcmp(token, "exit") == -1){ 
+    result = false;
+  }
+
+  return result; 
+
+}
+
+bool check_built_in_command(struct command_input_t * command_input) {
+
+  bool result = false; 
+
+  if (strcmp(command_input->command, "cd") == 0 || strcmp(command_input->command, "status") == 0){ 
+    result = true;
+  }
+
+  return result;
+}
 
 /* #######################################################
  * Function: variable_expansion   
@@ -91,8 +165,6 @@ char * read_input(){
 	
   return command;
 }
-
-
 
 /* #######################################################
  * Function: parse_arguments 
@@ -201,82 +273,6 @@ void signal_handler(int signal_no){
 
   return;
 
-}
-
-
-bool check_comment(struct command_input_t * command_input){ 
-
-  bool result = false;
-  char * found = NULL;
-
-  found = strstr(command_input->command, "#");
-
-  if (found) { 
-    result = true; 
-  } 
-
-  return result; 
-}
-
-bool check_background(struct command_input_t * command_input){ 
-
-  bool result = false;
-  char * found = NULL;
-
-  found = strstr(command_input->command, "&");
-
-  if (found) { 
-    result = true; 
-  } 
-
-  return result; 
-}
-
-bool check_inputredirect(struct command_input_t * command_input, char * token) { 
-
-  bool result = false;
-
-  if(strcmp(token, "<") == 0){ 
-    result = true;
-  }
-
-  return result;
-  
-}
-
-bool check_outputredirect(struct command_input_t * command_input, char * token) { 
-
-  bool result = false;
-
-  if(strcmp(token, ">") == 0){ 
-    result = true;
-  }
-
-  return result;
-  
-}
-
-bool check_exit(char * token) { 
-
-  bool result = true; 
-
-  if(strcmp(token, "exit") == 0){ 
-    result = false;
-  }
-
-  return result; 
-
-}
-
-bool check_built_in_command(struct command_input_t * command_input) {
-
-  bool result = false; 
-
-  if (strcmp(command_input->command, "cd") == 0 || strcmp(command_input->command, "status") == 0){ 
-    result = true;
-  }
-
-  return result;
 }
 
 void execute_built_in_command(struct command_input_t * command_input, int * exit_code, bool * foreground_permitted) { 
