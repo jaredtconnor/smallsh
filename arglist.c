@@ -91,3 +91,25 @@ bool checkempty_list(struct arglist_t * arguments){
     return result;
 }
 
+
+char ** get_arguments(struct arglist_t * arguments) { 
+
+    int list_size = arguments->size; 
+    int list_size_terminated = arguments->size + 2; 
+    char ** argument_list = malloc(list_size_terminated * sizeof(char *)); 
+
+
+    struct argnode_t * current = arguments->head; 
+
+    for (int i = 0; i < list_size; i++){ 
+
+        argument_list[i] = current->value; 
+        current = current->next; 
+
+    }
+
+    argument_list[list_size] = NULL; 
+
+    return argument_list;
+
+}

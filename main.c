@@ -1,22 +1,8 @@
 #include "smallsh.h"
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 int main() { 
 
     struct sigaction SIGTSTP_action = {0}; 
-    struct sigaction SIGINT_action = {0}; 
 
     SIGTSTP_action.sa_handler = signal_handler;
     SIGTSTP_action.sa_flags = SA_RESTART; 
@@ -25,42 +11,48 @@ int main() {
 
 
     // 1 - Set Signals 
-    bool shell_running = true;
-    char * command;
+    char * command = read_input();
+    bool shell_running = check_exit(command);
     struct command_input_t * command_data;
+    int exitcode = 0;
+    bool foregroundMode; 
 
     while (shell_running) { 
-
-        // 2 - Check background processes
-         
-
-        // 3 - Read input
-        command = read_input();
 
         // 4 - Parse arguments 
         command_data = parse_arguments(command); 
         
         // 5 - Execute built in commands
-        if(command_data->builtin) { 
-            execute_built_in_command(command_data);
+        // 7 - Input/output redirection
+        if(command_data->builtin && !command_data->is_comment) { 
+
+            execute_built_in_command(command_data, &exitcode, &foregroundMode);
+
+
+        } else if (!command_data->is_comment) { 
+
+                    execution_fork(command_data,
+                                   &exitcode, 
+                                   &foregroundMode);
         }
 
+        free(command); 
+        destroy_list(command_data->arguments);
 
 
-        // 6 - Execute general commands
+        print_background_process(); 
 
 
+        command = read_input();
+        shell_running = check_exit(command);
+    } 
 
-        // 7 - Input/output redirection
+    signal(SIGQUIT, SIG_IGN); 
+    kill(-1*getpid(), SIGQUIT); 
 
+    free(command);
     
-
-        
-    }
-    
-    destroy_list(command_data->arguments);
-    exit(0);
-    return 1; 
+    return 0; 
 
 }
 

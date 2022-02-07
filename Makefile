@@ -12,6 +12,7 @@ run:
 clear:
 	rm -f smallsh 
 	rm -f mytestresults
+	rm -rf *.o
 
 valgrind:
 	valgrind -s --leak-check=yes --track-origins=yes --show-reachable=yes --log-file="valgrind.txt" ./smallsh
