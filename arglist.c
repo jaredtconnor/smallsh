@@ -1,5 +1,16 @@
 #include "arglist.h" 
 
+/* #######################################################
+ * Function: create_arg_list()   
+ * Creates an argument list and sets all starting pointers to NULL
+ * 
+ * params: 
+ *  1 - char * command - pointer to command line being passed
+ *
+ * output: 
+ *  1 - int - int indicating result, 0 correct and 1 error
+ *
+ * ######################################################## */
 struct arglist_t * create_arg_list() { 
 
     struct arglist_t * argument_list = NULL; 
