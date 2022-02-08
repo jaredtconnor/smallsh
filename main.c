@@ -2,11 +2,12 @@
 
 int main() { 
 
+    // driver variables
     struct command_input_t * command_data;
-    int child_processes[200];
+    int processes[NUM_PROCESSES] = {0};
     int status = 0;
 
-    // 1 - Set Signals 
+    // setup of signals
     struct sigaction SIGINT_action = {0};
     SIGINT_action.sa_handler = SIG_IGN; 
     sigfillset(&SIGINT_action.sa_mask); 
@@ -19,47 +20,47 @@ int main() {
     SIGTSTP_action.sa_flags = 0;
     sigaction(SIGTSTP, &SIGTSTP_action, NULL); 
 
+    // read in commands
     char * command = read_input();
     bool shell_running = true;
 
+    // main shell process
     while (shell_running) { 
 
+        // parse arguments
         command_data = parse_arguments(command); 
         command_data->builtin = check_built_in_command(command_data);
 
+        // skip if comment
         if (command_data->is_comment == true) { 
             continue; 
         } 
 
+        // exit shell and kill child processes
         else if (command_data->exit == true) { 
 
             shell_running = false; 
+            kill_shell(processes, &status);
 
-            for (int i = 0; i < 200; i++) { 
-
-                if(child_processes[i]) { 
-
-                    kill(child_processes[i], SIGTERM); 
-                    child_processes[i] = waitpid(child_processes[i], &status, WNOHANG); 
-                }
-            }
         }
 
+        // execute built in commands - TODO
         else if (command_data->builtin == true) { 
 
             execute_built_in_command(command_data, &status);
 
         }
 
+        // execute other commands
         else { 
-            execute_command(command_data, &status, child_processes, &SIGINT_action); 
-        }
 
+            execute_command(command_data, &status, processes, &SIGINT_action); 
+
+        }
+        
+        // re-read command input
         command = read_input();
     } 
-
-    // signal(SIGQUIT, SIG_IGN); 
-    // kill(-1*getpid(), SIGQUIT); 
 
     free(command);
     
