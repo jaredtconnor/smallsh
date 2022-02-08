@@ -16,6 +16,7 @@
 
 #define PID_LEN   50 
 #define VAR_EXPAND "$$"
+#define NUM_PROCESSES 50
 
 
 /*
@@ -68,13 +69,12 @@ void signal_handler(int);
 bool check_comment(char *);
 bool variable_expansion(struct command_input_t *, char *);
 bool check_background(char *);
-bool check_inputredirect(struct command_input_t *, char *);
-bool check_outputredirect(struct command_input_t *, char *);
-void set_redirect(struct command_input_t *, bool, bool);
+bool check_inputredirect(char *);
+bool check_outputredirect(char *);
 bool check_built_in_command(struct command_input_t *);
 bool check_exit(char *);
 void execute_built_in_command(struct command_input_t *, int *);
 void change_directory(struct command_input_t *);
 void show_status(struct command_input_t *, int *, bool *);
 void execute_command(struct command_input_t *, int *, int *, struct sigaction *);
-//void change_directory(struct command_intput_t *);
+void kill_shell(int *, int *);
