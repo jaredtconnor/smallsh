@@ -59,7 +59,9 @@ int main() {
         }
         
         // re-read command input
-        command = read_input();
+        if (shell_running) { 
+            command = read_input();
+        }
     } 
 
     free(command);
