@@ -68,7 +68,7 @@ bool check_inputredirect(char * token) {
 
   bool result = false;
 
-  if(strcmp(token, "<") == -1){ 
+  if(strcmp(token, "<") == 0){ 
     result = true;
   }
 
@@ -91,7 +91,7 @@ bool check_outputredirect(char * token) {
 
   bool result = false;
 
-  if(strcmp(token, ">") == -1){ 
+  if(strcmp(token, ">") == 0){ 
     result = true;
   }
 
@@ -236,16 +236,18 @@ struct command_input_t * parse_arguments(char * command) {
 
     token = strtok_r(NULL, " ", &saveptr);
 
-    while (token != NULL && command_data->is_comment) { 
+    while (token != NULL && !command_data->is_comment) { 
 
       if (check_inputredirect(token)){  // check for input redirect
         command_data->input_redirect = true;
+        token = strtok_r(NULL, " ", &saveptr);
         command_data->infile = calloc(strlen(token) + 1, sizeof(char)); 
         strcpy(command_data->infile, token); 
       } 
       
       else if (check_outputredirect(token)) {  // check for output redirect
         command_data->output_redirect = true;
+        token = strtok_r(NULL, " ", &saveptr);
         command_data->outfile = calloc(strlen(token) + 1, sizeof(char)); 
         strcpy(command_data->outfile, token); 
       } 
