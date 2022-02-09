@@ -134,11 +134,11 @@ bool check_exit(char * token) {
  *  1 - true - is built in
  *  2 - false - is not built in
  * ######################################################## */
-bool check_built_in_command(struct command_input_t * command_input) {
+bool check_built_in_command(char * token) {
 
   bool result = false; 
 
-  if (strcmp(command_input->command, "cd") == 0 || strcmp(command_input->command, "status") == 0){ 
+  if (strcmp(token, "cd") == 0 || strcmp(token, "status") == 0){ 
     result = true;
   }
 
@@ -270,9 +270,12 @@ struct command_input_t * parse_arguments(char * command) {
     command_data->command = calloc(strlen(token) + 1, sizeof(char *)); 
     strcpy(command_data->command, token);
 
+    command_data->builtin = check_built_in_command(token); 
 
     // add argument for execvp argv[0]
-    add_argument(command_data->arguments, token);
+    if (!command_data->builtin) { 
+      add_argument(command_data->arguments, token);
+    }
 
     // check required commands before parsing extra args
     command_data->exit = check_exit(token);
@@ -355,7 +358,7 @@ void execute_built_in_command(struct command_input_t * command_input, int * stat
   // check if cd
   if (strcmp(command_input->command, "cd") == 0){ 
 
-    if (command_input->arguments->size > 1){ 
+    if (command_input->arguments->size > 0){ 
       chdir(command_input->arguments->head->value); 
     } 
     

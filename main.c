@@ -29,7 +29,6 @@ int main() {
 
         // parse arguments
         command_data = parse_arguments(command); 
-        command_data->builtin = check_built_in_command(command_data);
 
         // skip if comment
         if (command_data->is_comment == true) { 

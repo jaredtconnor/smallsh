@@ -72,7 +72,7 @@ char * expand_pid(char *);
 bool check_background(char *);
 bool check_inputredirect(char *);
 bool check_outputredirect(char *);
-bool check_built_in_command(struct command_input_t *);
+bool check_built_in_command(char *);
 bool check_exit(char *);
 void execute_built_in_command(struct command_input_t *, int *);
 void change_directory(struct command_input_t *);
