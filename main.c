@@ -57,14 +57,17 @@ int main() {
             execute_command(command_data, &status, processes, &SIGINT_action); 
 
         }
-        
+
         // re-read command input
         if (shell_running) { 
             command = read_input();
         }
-    } 
 
-    free(command);
+    } 
+    
+    //free(command_data);
+    destroy_list(command_data->arguments);
+    free(command_data);
     
     return 0; 
 

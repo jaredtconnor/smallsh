@@ -113,7 +113,7 @@ void destroy_list(struct arglist_t * arguments){
 
         current = NULL; 
         temp = NULL; 
-        free(arguments);
+        //free(arguments);
 
     }
 

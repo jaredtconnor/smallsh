@@ -301,6 +301,16 @@ struct command_input_t * parse_arguments(char * command) {
       
       else if (check_background(token) == true){  // check for background flag
         command_data->backgroundflag = true;
+
+        if(!command_data->input_redirect == true) { 
+          command_data->infile = calloc(strlen("/dev/null") + 1, sizeof(char));
+          strcpy(command_data->infile, "/dev/null"); 
+        }
+
+        if(!command_data->output_redirect == true) { 
+          command_data->outfile = calloc(strlen("/dev/null") + 1, sizeof(char));
+          strcpy(command_data->outfile, "/dev/null"); 
+        }
       } 
       
       else {  // else add to the argument list
@@ -315,20 +325,6 @@ struct command_input_t * parse_arguments(char * command) {
       }
 
       token = strtok_r(NULL, " ", &saveptr);
-    }
-
-    // background processes - changing to dev null input/output
-    if (command_data->backgroundflag == true) { 
-
-      if(command_data->input_redirect == true) { 
-        command_data->infile = calloc(strlen("/dev/null") + 1, sizeof(char));
-        strcpy(command_data->infile, "/dev/null"); 
-      }
-
-      if(command_data->output_redirect == true) { 
-        command_data->outfile = calloc(strlen("/dev/null") + 1, sizeof(char));
-        strcpy(command_data->outfile, "/dev/null"); 
-      }
     }
 
     // specify as background flag
@@ -368,22 +364,20 @@ void execute_built_in_command(struct command_input_t * command_input, int * stat
 
   } 
   
-  /* TODO */ 
-  // else if (strcmp(command_input->command, "status") == 0) { 
+  else if (strcmp(command_input->command, "status") == 0) { 
 
-    // if(WIFEXITED(&status)) { 
+    if(WIFEXITED(*status)) { 
+      printf("[STATUS] Exit value of %d\n", WEXITSTATUS(*status));
+      fflush(stdout); 
 
-      // fflush(stdout); 
+    } 
+    
+    else if(WIFSIGNALED(*status)) { 
 
-    // } else { 
-
-      // fflush(stdout); 
-
-
-    // }
-
-
-  // }
+      printf("[STATUS] Signal terminated with value of %d\n", WTERMSIG(*status));
+      fflush(stdout); 
+    }
+  }
 
   return; 
 
@@ -443,7 +437,7 @@ void execute_command(struct command_input_t * command_input, int * status, int *
 
   switch (spawnpid) { 
     case -1: 
-      perror("fork() error\n");
+      perror("[FORK ERROR] fork() failure\n");
       exit(1); 
       break;
 
@@ -460,14 +454,14 @@ void execute_command(struct command_input_t * command_input, int * status, int *
         int fileinput = open(command_input->infile, O_RDONLY); 
 
         if (fileinput == -1) {
-          perror("cannot open file\n");
+          perror("[FILE ERROR] Cannot open file\n");
           exit(1); 
         }
 
         int result = dup2(fileinput, 0); 
 
         if(result == -1){ 
-          perror("cannot redirect file\n");
+          perror("[FILE ERROR] Cannot open file\n");
           exit(2); 
         }
 
@@ -479,14 +473,14 @@ void execute_command(struct command_input_t * command_input, int * status, int *
         int filewrite = open(command_input->outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644); 
 
         if (filewrite == -1) { 
-          perror("Cannot open file to write\n");
+          perror("[FILE ERROR] Cannot open file\n");
           exit(1); 
         }
 
         int result = dup2(filewrite, 1); 
 
         if(result == -1){ 
-          perror("cannot redirect file\n");
+          perror("[FILE ERROR] Cannot open file\n");
           exit(2); 
         }
 
@@ -497,13 +491,12 @@ void execute_command(struct command_input_t * command_input, int * status, int *
       // Execute actual command with execvp
       // CITATION - https://web.stanford.edu/class/archive/cs/cs110/cs110.1196/static/lectures/05-Execvp/lecture-05-understanding-execvp.pdf
       execvp(command_input->command, arguments);
-      perror("------- EXECVP ERROR -------\n"); 
+      perror("\n[EXEC ERROR]\n"); 
       exit(2); 
       break;
 
     // PARENT PROCESS
     default: 
-
 
       // current background process
       if (command_input->backgroundflag == true) { 
@@ -525,7 +518,7 @@ void execute_command(struct command_input_t * command_input, int * status, int *
         spawnpid = waitpid(spawnpid, status, 0); 
 
         if (WTERMSIG(*status)) { 
-          printf("terminated by singal %d\n", WTERMSIG(*status)); 
+          printf("[SINGAL] Current child terminated by singal %d\n", WTERMSIG(*status)); 
           fflush(stdout); 
         }
 
