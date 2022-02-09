@@ -146,7 +146,7 @@ bool check_built_in_command(struct command_input_t * command_input) {
 }
 
 /* #######################################################
- * Function: variable_expansion   
+ * Function: check_variable_expansion   
  * Searches a command line to confirm if there is '$$' 
  * requesting a variable expansion
  * 
@@ -157,7 +157,7 @@ bool check_built_in_command(struct command_input_t * command_input) {
  *  1 - int - int indicating result, 0 correct and 1 error
  *
  * ######################################################## */
-bool variable_expansion(struct command_input_t * command_input, char * token) { 
+bool check_variable_expansion(char * token) { 
 
   bool result = false;
   char * found = NULL;
@@ -170,6 +170,49 @@ bool variable_expansion(struct command_input_t * command_input, char * token) {
 
   return result;
 }
+
+
+/* #######################################################
+ * Function: expand_pid   
+ * Searches a command line to confirm if there is '$$' 
+ * requesting a variable expansion
+ * 
+ * params: 
+ *  1 - char * command - pointer to command line being passed
+ *
+ * output: 
+ *  1 - int - int indicating result, 0 correct and 1 error
+ *
+ * Ciation - https://stackoverflow.com/questions/8137244/best-way-to-replace-a-part-of-string-by-another-in-c
+ * 
+ * ######################################################## */
+char * expand_pid(char * command)
+{
+
+  static char temp[4096];
+  static char buffer[4096];
+  char *p;
+  char pid_c[PID_LEN]; 
+  int pid = getpid(); 
+  memset(pid_c, '\0', sizeof(pid_c));
+  sprintf(pid_c, "%d", pid);
+
+  strcpy(temp, command);
+
+  if(!(p = strstr(temp, "$$")))
+    return temp;
+
+  strncpy(buffer, temp, p-temp); // Copy characters from 'temp' start to 'orig' str
+  buffer[p-temp] = '\0';
+
+  sprintf(buffer + (p - temp), "%s%s", pid_c, p + strlen("$$"));
+  sprintf(command, "%s", buffer);    
+
+  return command;
+}
+
+
+
 
 /* #######################################################
  * Function: read_input 
@@ -227,6 +270,7 @@ struct command_input_t * parse_arguments(char * command) {
     command_data->command = calloc(strlen(token) + 1, sizeof(char *)); 
     strcpy(command_data->command, token);
 
+
     // add argument for execvp argv[0]
     add_argument(command_data->arguments, token);
 
@@ -257,6 +301,13 @@ struct command_input_t * parse_arguments(char * command) {
       } 
       
       else {  // else add to the argument list
+
+        command_data->variablexpand = check_variable_expansion(token);
+
+        if (command_data->variablexpand) { 
+          token = expand_pid(token);
+        }
+
         add_argument(command_data->arguments, token);
       }
 
