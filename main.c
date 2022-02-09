@@ -33,7 +33,8 @@ int main() {
 
         // skip if comment
         if (command_data->is_comment == true) { 
-            continue; 
+            command = read_input();
+            continue;
         } 
 
         // exit shell and kill child processes

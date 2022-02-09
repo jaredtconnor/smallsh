@@ -9,16 +9,18 @@ target:
 run:
 	./smallsh
 
-clear:
+clean:
 	rm -f smallsh 
 	rm -f mytestresults
 	rm -rf *.o
+	rm junk
+	rm test*
 
 valgrind:
 	valgrind -s --leak-check=yes --track-origins=yes --show-reachable=yes --log-file="valgrind.txt" ./smallsh
 
 test: 
-	./p3testscript > mytestresults 2>&1
+	./p3testscript > mytestresults 2>&1 
 
 ps: 
 	ps -o ppid,pid,pgid,sid,euser,stat,%cpu,rss,args | head -n 1; ps -eH -o ppid,pid,pgid,sid,euser,stat,%cpu,rss,args | grep jaredconnor	
