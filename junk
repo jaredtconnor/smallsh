@@ -1,0 +1,10 @@
+Makefile
+README.md
+arglist.c
+arglist.h
+junk
+main.c
+p3testscript
+smallsh
+smallsh.c
+smallsh.h
