@@ -621,7 +621,7 @@ void execute_background(struct command_input_t * command_input, int * status, st
 /* #######################################################
  * Function: exec_mode_singal_handler   
  * Main signal handler function for controlling foreground and
- * non foreground only monde
+ * non foreground only mode
  * 
  * params: 
  *  1 - int
@@ -637,7 +637,7 @@ void exec_mode_signal_handler(int signal_no){
 
   if (FOREGROUND_ONLY == false) {  
     FOREGROUND_ONLY = true;
-    char * foreground_mode = "\n----FOREGROUND MODE----\n"; 
+    char * foreground_mode = "\n----FOREGROUND ONLY MODE----\n"; 
     strcpy(message, foreground_mode);
   } 
   
