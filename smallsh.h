@@ -75,14 +75,8 @@ bool check_outputredirect(char *);
 bool check_built_in_command(char *);
 bool check_exit(char *);
 void execute_built_in_command(struct command_input_t *, int *);
-void change_directory(struct command_input_t *);
 void show_status(struct command_input_t *, int *, bool *);
-void add_background_process(int *, int *, int);
-void clean_background_processes(int *, int *, int);
-void print_background_processes(int *, int *, int *);
-void kill_shell(int *, int *);
-
-void execute_fork(struct command_input_t *, int *, int *, int *, struct sigaction *);
-void execute_foreground(struct command_input_t *, int *, int *, int *, struct sigaction *);
+void execute_fork(struct command_input_t *, int *, struct sigaction *);
+void execute_foreground(struct command_input_t *, int *,  struct sigaction *);
 void execute_background(struct command_input_t *, int *, struct sigaction *);
-
+void print_background();

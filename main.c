@@ -28,11 +28,6 @@ int main() {
     // main shell process
     while (shell_running) { 
 
-        if (background_procsses_ctr > 0){ 
-            
-        } 
-
-
         // parse arguments
         command_data = parse_arguments(command); 
 
@@ -44,25 +39,21 @@ int main() {
 
         // exit shell and kill child processes
         else if (command_data->exit == true) { 
-
             shell_running = false; 
-            kill_shell(background_processes, &status);
-
         }
 
         // execute built in commands - TODO
         else if (command_data->builtin == true) { 
-
             execute_built_in_command(command_data, &status);
-
         }
 
         // execute other commands
         else { 
-
-            execute_fork(command_data, &status, background_processes, &background_procsses_ctr, &SIGINT_action); 
-
+            execute_fork(command_data, &status, &SIGINT_action); 
         }
+
+        // prints current background processes
+        print_background(); 
 
         // re-read command input
         if (shell_running) { 

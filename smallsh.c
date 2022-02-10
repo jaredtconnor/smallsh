@@ -413,7 +413,7 @@ void show_status(struct command_input_t * command_input, int* exit_code, bool * 
 }
 
 
-void execute_fork(struct command_input_t * command_input, int * status, int * processes, int * process_ctr, struct sigaction * sigint_action)) { 
+void execute_fork(struct command_input_t * command_input, int * status, struct sigaction * sigint_action) { 
 
   if(command_input->backgroundflag && !FOREGROUND_ONLY){ 
 
@@ -428,7 +428,7 @@ void execute_fork(struct command_input_t * command_input, int * status, int * pr
       exit(1);
 
     case 0: 
-      execute_background(command_input, status);
+      execute_background(command_input, status, sigint_action);
       break;
 
     default:
@@ -441,7 +441,7 @@ void execute_fork(struct command_input_t * command_input, int * status, int * pr
   }
 
   else { 
-    execute_foreground(command_input, status, processes, process_ctr, sigint_action);
+    execute_foreground(command_input, status, sigint_action);
   }
 
   return;
@@ -461,7 +461,7 @@ void execute_fork(struct command_input_t * command_input, int * status, int * pr
  *  void
  *
  * ######################################################## */
-void execute_foreground(struct command_input_t * command_input, int * status, int * processes, int * process_ctr, struct sigaction * sigint_action) { 
+void execute_foreground(struct command_input_t * command_input, int * status, struct sigaction * sigint_action) { 
 
   // get the arguments for the current arg list
   char ** arguments = get_arguments(command_input->arguments); 
@@ -517,100 +517,74 @@ void execute_foreground(struct command_input_t * command_input, int * status, in
       break; 
 
   }
-      spawnpid = waitpid(spawnpid, status, 0); 
 
-      if (WTERMSIG(*status)) { 
-        printf("[SINGAL] Current child terminated by singal %d\n", WTERMSIG(*status)); 
-        fflush(stdout); 
-      }
+  spawnpid = waitpid(spawnpid, status, 0); 
 
-      else if (WIFEXITED(*status)) { 
+  if (WTERMSIG(*status)) { 
+    printf("[SINGAL] Current child terminated by singal %d\n", WTERMSIG(*status)); 
+    fflush(stdout); 
+  }
 
-        *status = WEXITSTATUS(*status); 
-      }
+  else if (WIFEXITED(*status)) { 
 
-      sigint_action->sa_handler = SIG_IGN; 
-      sigaction(SIGINT, sigint_action, NULL);
+    *status = WEXITSTATUS(*status); 
+  }
+
+  sigint_action->sa_handler = SIG_IGN; 
+  sigaction(SIGINT, sigint_action, NULL);
 
   return; 
 }
 
 void execute_background(struct command_input_t * command_input, int * status, struct sigaction * sigint_action) { 
 
-      signal(SIGINT, SIG_IGN); 
-      signal(SIGTSTP, SIG_IGN); 
+  signal(SIGINT, SIG_IGN); 
+  signal(SIGTSTP, SIG_IGN); 
+  sigint_action->sa_handler = SIG_DFL; 
+  sigaction(SIGINT, sigint_action, NULL); 
 
-      int background_pid = malloc(sizeof(int)); 
-      background_pid = getpid();
+  int background_pid = malloc(sizeof(int)); 
+  background_pid = getpid();
 
-      // Allowing for SIGINT
-      if (command_input->backgroundflag == false) { 
-        sigint_action->sa_handler = SIG_DFL; 
-        sigaction(SIGINT, sigint_action, NULL); 
-      }
+  // get the arguments for the current arg list
+  char ** arguments = get_arguments(command_input->arguments); 
 
-      // current background process
-      if (command_input->backgroundflag == true) { 
-        printf("[BACKGROUND] PID - %d\n", spawnpid);
-        fflush(stdout); 
-        spawnpid = waitpid(spawnpid, status, WNOHANG); 
-
-        // add to current process list
-        add_background_process(processes, process_ctr, spawnpid);
-      }
-      
-    // Waiting for current foreground processes to finish
-    while ((spawnpid = waitpid(-1, status, WNOHANG)) > 0) { 
-
-      if (WIFEXITED(*status)) { 
-        printf("[BACKGROUND] PID - %d is done | EXIT - %d\n", spawnpid, WEXITSTATUS(*status));
-        fflush(stdout); 
-      } 
-      
-      else { 
-        printf("[BACKGROUND] PID - %d is done | SIGNAL - %d\n", spawnpid, WEXITSTATUS(*status));
-        fflush(stdout); 
-      }
-
-      // Clean bg processes
-      clean_background_processes(processes, process_ctr, spawnpid);
+  // input redirect
+  if (command_input->input_redirect){ 
+    int fileinput = open(command_input->infile, O_RDONLY); 
+    int result = dup2(fileinput, 0); 
+    if (fileinput == -1 || result == -1) {
+      perror("[FILE ERROR] Cannot open file\n");
+      exit(1); 
     }
-      // current foreground process
-  return; 
 
-}
-
-void add_background_process(int * processes, int * processes_ctr, int child_pid){ 
-
-  processes[*processes_ctr] = child_pid; 
-  processes_ctr++; 
-
-  return; 
-
-}
-
-
-
-void clean_background_processes(int * processes, int * process_ctr, int child_pid){ 
-
-  for (int i = 0; i < *process_ctr; i++){ 
-
-    if (processes[i] = child_pid){ 
-      processes[i] = NULL;
-    }
+    fcntl(fileinput, F_SETFD, FD_CLOEXEC); 
   }
 
+  // output redirect 
+  if (command_input->output_redirect == true) { 
+    int filewrite = open(command_input->outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644); 
+    int result = dup2(filewrite, 1); 
+
+    if (filewrite == -1 || result == -1) { 
+      perror("[FILE ERROR] Cannot open file\n");
+      exit(1); 
+    }
+
+    fcntl(filewrite, F_SETFD, FD_CLOEXEC); 
+
+  }
+
+  // Execute actual command with execvp
+  // CITATION - https://web.stanford.edu/class/archive/cs/cs110/cs110.1196/static/lectures/05-Execvp/lecture-05-understanding-execvp.pdf
+  execvp(command_input->command, arguments);
+  perror("\n[EXEC ERROR]\n"); 
+  exit(2); 
+
+  // current foreground process
   return; 
-}
-
-void print_background_processes(int * processes, int * process_ctr, int * status) { 
-
-
-
 
 }
-
-
 
 
 /* #######################################################
@@ -640,25 +614,24 @@ void exec_mode_signal_handler(int signal_no){
   return; 
 }
 
-/* #######################################################
- * Function: kill_shell   
- * iterates through existing background pids and kills them
- * 
- * params: 
- *  1 - int * 
- *  2 - int *
- *
- * output: 
- *  void
- *
- * ######################################################## */
-void kill_shell(int * processes, int * status) { 
 
-    for (int i = 0; i < NUM_PROCESSES; i++) { 
-        if(processes[i]) { 
-            kill(processes[i], SIGTERM); 
-            processes[i] = waitpid(processes[i], status, WNOHANG); 
-        }
+void print_background() { 
+
+  int childStatus = -1; 
+
+
+  pid_t child_pid = waitpid(-1, &childStatus, WNOHANG);
+
+  while (child_pid > 0) { 
+
+    if (WIFEXITED(childStatus)) {
+      printf("[Background] PID %d is done: exited - %d\n", child_pid, WEXITSTATUS(childStatus));
     }
 
+    else if (WIFSIGNALED(childStatus)) { 
+      printf("[Background] PID %d is done: signaled - %d\n", child_pid, WTERMSIG(childStatus));
+    }
+
+    child_pid = waitpid(-1, &childStatus, WNOHANG);
+  }
 }
