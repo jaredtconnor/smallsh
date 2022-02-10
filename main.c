@@ -53,7 +53,7 @@ int main() {
         }
 
         // prints current background processes
-        print_background(); 
+        background_process_status();
 
         // re-read command input
         if (shell_running) { 

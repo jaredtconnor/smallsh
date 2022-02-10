@@ -1,7 +1,7 @@
 #include "smallsh.h"
 
 bool FOREGROUND_ONLY = false; 
-pid_t spawnpid = -5; 
+pid_t spawnpid = -10; 
 
 /* #######################################################
  * Function: check_comment 
@@ -212,8 +212,6 @@ char * expand_pid(char * command)
 }
 
 
-
-
 /* #######################################################
  * Function: read_input 
  * Reads in stdin and returns a char * to be parsed
@@ -241,6 +239,7 @@ char * read_input(){
   return command;
 
 }
+
 
 /* #######################################################
  * Function: parse_argments   
@@ -337,6 +336,7 @@ struct command_input_t * parse_arguments(char * command) {
 
 }
 
+
 /* #######################################################
  * Function: execute_built_in_commad   
  * Executes a given input if it is either "cd" or "status'"
@@ -383,6 +383,7 @@ void execute_built_in_command(struct command_input_t * command_input, int * stat
 
 }
 
+
 /* #######################################################
  * Function: show_status   
  * Shows a status of exiting child processes
@@ -413,44 +414,64 @@ void show_status(struct command_input_t * command_input, int* exit_code, bool * 
 }
 
 
+/* #######################################################
+ * Function: execute_fork   
+ * Determines which type of execute to perform, either a background
+ * or foreground function then forks and runs that exec
+ * 
+ * params: 
+ *  1 - struct command_input_t *
+ *  2 - int *
+ *  3 - bool * 
+ *
+ * output: 
+ *  void
+ *
+ * ######################################################## */
 void execute_fork(struct command_input_t * command_input, int * status, struct sigaction * sigint_action) { 
 
+  // Run exe in background if flag set and background permitted
   if(command_input->backgroundflag && !FOREGROUND_ONLY){ 
 
+    // fork new bg child pid
     pid_t background_process_pid = fork();
 
     switch (background_process_pid)
     {
     case -1:
-
+      // error on fork()
       printf("[ERROR] Unable to start background process\n");
       fflush(stdout); 
       exit(1);
 
     case 0: 
+      // child process created, execute
       execute_background(command_input, status, sigint_action);
       break;
 
     default:
 
-      printf("[STATUS] Background pid %d has started\n", background_process_pid);
+      // prinout background pid upon execute 
+      printf("[BACKGROUND] Background pid %d has started\n", background_process_pid);
       fflush(stdout); 
       break;
     }
 
   }
 
-  else { 
+  else { // Execute in the foreground if else
     execute_foreground(command_input, status, sigint_action);
   }
 
   return;
+
 }
 
 
 /* #######################################################
- * Function: execute_command   
- * Main execution process to execute non - built in commands
+ * Function: execute_foreground   
+ * Main exec call to call non built in functions in the foreground
+ * and print/display the results as needed. 
  * 
  * params: 
  *  1 - struct command_input_t *
@@ -513,20 +534,20 @@ void execute_foreground(struct command_input_t * command_input, int * status, st
 
     // PARENT PROCESS
     default: 
-
       break; 
 
   }
 
+  // Wait for child to finish
   spawnpid = waitpid(spawnpid, status, 0); 
 
+  // Terminate based opn signals
   if (WTERMSIG(*status)) { 
     printf("[SINGAL] Current child terminated by singal %d\n", WTERMSIG(*status)); 
     fflush(stdout); 
   }
 
   else if (WIFEXITED(*status)) { 
-
     *status = WEXITSTATUS(*status); 
   }
 
@@ -536,15 +557,28 @@ void execute_foreground(struct command_input_t * command_input, int * status, st
   return; 
 }
 
+
+/* #######################################################
+ * Function: execute_background
+ * executes a background task based on the background flag (i.e. &) 
+ * of the command. Redirects output/input as needed if specified. 
+ * 
+ * 
+ * params: 
+ *  1 - struct command_input_t *
+ *  2 - int * 
+ *  3 - struct sigaction *
+ *
+ * output: 
+ *  void
+ *
+ * ######################################################## */
 void execute_background(struct command_input_t * command_input, int * status, struct sigaction * sigint_action) { 
 
-  signal(SIGINT, SIG_IGN); 
-  signal(SIGTSTP, SIG_IGN); 
   sigint_action->sa_handler = SIG_DFL; 
   sigaction(SIGINT, sigint_action, NULL); 
 
-  int background_pid = malloc(sizeof(int)); 
-  background_pid = getpid();
+  int background_pid = getpid();
 
   // get the arguments for the current arg list
   char ** arguments = get_arguments(command_input->arguments); 
@@ -575,20 +609,19 @@ void execute_background(struct command_input_t * command_input, int * status, st
 
   }
 
-  // Execute actual command with execvp
-  // CITATION - https://web.stanford.edu/class/archive/cs/cs110/cs110.1196/static/lectures/05-Execvp/lecture-05-understanding-execvp.pdf
   execvp(command_input->command, arguments);
   perror("\n[EXEC ERROR]\n"); 
   exit(2); 
 
-  // current foreground process
   return; 
 
 }
 
 
 /* #######################################################
- * Function: singal_handler   
+ * Function: exec_mode_singal_handler   
+ * Main signal handler function for controlling foreground and
+ * non foreground only monde
  * 
  * params: 
  *  1 - int
@@ -615,11 +648,23 @@ void exec_mode_signal_handler(int signal_no){
 }
 
 
-void print_background() { 
+/* #######################################################
+ * Function: background_process_status
+ * Prints the status of any remmaining pids that are currently 
+ * being executed in the background once they are completed and 
+ * a new command is processed
+ * 
+ * params: 
+ *  void
+ *
+ * output: 
+ *  void
+ *
+ * ######################################################## */
+void background_process_status() { 
 
+  // wait for pids and setup status
   int childStatus = -1; 
-
-
   pid_t child_pid = waitpid(-1, &childStatus, WNOHANG);
 
   while (child_pid > 0) { 
@@ -634,4 +679,8 @@ void print_background() {
 
     child_pid = waitpid(-1, &childStatus, WNOHANG);
   }
+
+  return; 
+
 }
+

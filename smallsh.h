@@ -79,4 +79,4 @@ void show_status(struct command_input_t *, int *, bool *);
 void execute_fork(struct command_input_t *, int *, struct sigaction *);
 void execute_foreground(struct command_input_t *, int *,  struct sigaction *);
 void execute_background(struct command_input_t *, int *, struct sigaction *);
-void print_background();
+void background_process_status();
