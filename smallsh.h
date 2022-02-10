@@ -65,7 +65,7 @@ Function Prototypes
 
 struct command_input_t * parse_arguments(char *);
 char * read_input();
-void signal_handler(int);
+void exec_mode_signal_handler(int);
 bool check_comment(char *);
 bool check_variable_expansion(char *);
 char * expand_pid(char *);
@@ -77,5 +77,11 @@ bool check_exit(char *);
 void execute_built_in_command(struct command_input_t *, int *);
 void change_directory(struct command_input_t *);
 void show_status(struct command_input_t *, int *, bool *);
-void execute_command(struct command_input_t *, int *, int *, struct sigaction *);
+void execute_command(struct command_input_t *, int *, int *, int *, struct sigaction *);
+void add_background_process(int *, int *, int);
+void clean_background_processes(int *, int *, int);
+void print_background_processes(int *, int *, int *);
 void kill_shell(int *, int *);
+
+void execute_fork(struct command_input_t *, int *, int *, int *);
+

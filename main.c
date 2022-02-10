@@ -4,21 +4,22 @@ int main() {
 
     // driver variables
     struct command_input_t * command_data;
-    int processes[NUM_PROCESSES] = {0};
     int status = 0;
+    int background_processes[NUM_PROCESSES] = {0};
+    int background_procsses_ctr = 0;
 
     // setup of signals
+    struct sigaction SIGTSTP_action = {0}; 
+    SIGTSTP_action.sa_handler = exec_mode_signal_handler;
+    sigfillset(&SIGTSTP_action.sa_mask); 
+    SIGTSTP_action.sa_flags = 0;
+    sigaction(SIGTSTP, &SIGTSTP_action, NULL); 
+
     struct sigaction SIGINT_action = {0};
     SIGINT_action.sa_handler = SIG_IGN; 
     sigfillset(&SIGINT_action.sa_mask); 
     SIGINT_action.sa_flags = 0; 
     sigaction(SIGINT, &SIGINT_action, NULL);  
-
-    struct sigaction SIGTSTP_action = {0}; 
-    SIGTSTP_action.sa_handler = signal_handler;
-    sigfillset(&SIGTSTP_action.sa_mask); 
-    SIGTSTP_action.sa_flags = 0;
-    sigaction(SIGTSTP, &SIGTSTP_action, NULL); 
 
     // read in commands
     char * command = read_input();
@@ -26,6 +27,11 @@ int main() {
 
     // main shell process
     while (shell_running) { 
+
+        if (background_procsses_ctr > 0){ 
+            
+        } 
+
 
         // parse arguments
         command_data = parse_arguments(command); 
@@ -40,7 +46,7 @@ int main() {
         else if (command_data->exit == true) { 
 
             shell_running = false; 
-            kill_shell(processes, &status);
+            kill_shell(background_processes, &status);
 
         }
 
@@ -54,7 +60,7 @@ int main() {
         // execute other commands
         else { 
 
-            execute_command(command_data, &status, processes, &SIGINT_action); 
+            execute_command(command_data, &status, background_processes, &background_procsses_ctr, &SIGINT_action); 
 
         }
 

@@ -1,6 +1,6 @@
 #include "smallsh.h"
 
-bool BLOCKBACKGROUND = true; 
+bool FOREGROUND_ONLY = false; 
 pid_t spawnpid = -5; 
 
 /* #######################################################
@@ -328,7 +328,7 @@ struct command_input_t * parse_arguments(char * command) {
     }
 
     // specify as background flag
-    if ((BLOCKBACKGROUND) == true) { 
+    if ((FOREGROUND_ONLY) == true) { 
       command_data->backgroundflag = false; 
     }
 
@@ -399,12 +399,12 @@ void execute_built_in_command(struct command_input_t * command_input, int * stat
 void show_status(struct command_input_t * command_input, int* exit_code, bool * foreground_permitted) { 
 
   if(*foreground_permitted) { 
-    printf("Terminated by signal %d\n", *exit_code);
+    printf("[STATUS] Terminated by signal %d\n", *exit_code);
     fflush(stdout); 
   } 
   
   else { 
-    printf("exit value %d\n", *exit_code);
+    printf("[STATUS] Exit value %d\n", *exit_code);
     fflush(stdout); 
   }
 
@@ -412,6 +412,13 @@ void show_status(struct command_input_t * command_input, int* exit_code, bool * 
 
 }
 
+
+void execute_fork(struct command_input_t, int * processes, ) { 
+
+
+
+
+}
 
 
 /* #######################################################
@@ -427,7 +434,7 @@ void show_status(struct command_input_t * command_input, int* exit_code, bool * 
  *  void
  *
  * ######################################################## */
-void execute_command(struct command_input_t * command_input, int * status, int * processes, struct sigaction * sigint_action) { 
+void execute_command(struct command_input_t * command_input, int * status, int * processes, int * process_ctr, struct sigaction * sigint_action) { 
 
 
   // get the arguments for the current arg list
@@ -444,10 +451,6 @@ void execute_command(struct command_input_t * command_input, int * status, int *
     // if fork successful - child process
     case 0: 
 
-      if (command_input->backgroundflag == false) { 
-        sigint_action->sa_handler = SIG_DFL; 
-        sigaction(SIGINT, sigint_action, NULL); 
-      }
 
       // input redirect
       if (command_input->input_redirect){ 
@@ -488,6 +491,11 @@ void execute_command(struct command_input_t * command_input, int * status, int *
 
       }
 
+      // Allowing for SIGINT
+      if (command_input->backgroundflag == false) { 
+        sigint_action->sa_handler = SIG_DFL; 
+        sigaction(SIGINT, sigint_action, NULL); 
+      }
       // Execute actual command with execvp
       // CITATION - https://web.stanford.edu/class/archive/cs/cs110/cs110.1196/static/lectures/05-Execvp/lecture-05-understanding-execvp.pdf
       execvp(command_input->command, arguments);
@@ -503,14 +511,9 @@ void execute_command(struct command_input_t * command_input, int * status, int *
         printf("[BACKGROUND] PID - %d\n", spawnpid);
         fflush(stdout); 
         spawnpid = waitpid(spawnpid, status, WNOHANG); 
-        int i = 0; 
 
         // add to current process list
-        while(processes[i] != NULL) { 
-          i++; 
-        }
-
-        processes[i] = spawnpid; 
+        add_background_process(processes, process_ctr, spawnpid);
       }
       
       // current foreground process
@@ -539,16 +542,44 @@ void execute_command(struct command_input_t * command_input, int * status, int *
           fflush(stdout); 
         }
 
-        // clean up processes
-        for (int i = 0; i < NUM_PROCESSES; i++) { 
-          if (processes[i] == spawnpid){ 
-            processes[i] = NULL; 
-          }
-        }         
+        // Clean bg processes
+        clean_background_processes(processes, process_ctr, spawnpid);
       }
   }
   return; 
 }
+
+
+void add_background_process(int * processes, int * processes_ctr, int child_pid){ 
+
+  processes[*processes_ctr] = child_pid; 
+  processes_ctr++; 
+
+  return; 
+
+}
+
+
+void clean_background_processes(int * processes, int * process_ctr, int child_pid){ 
+
+  for (int i = 0; i < *process_ctr; i++){ 
+
+    if (processes[i] = child_pid){ 
+      processes[i] = NULL;
+    }
+  }
+
+  return; 
+}
+
+void print_background_processes(int * processes, int * process_ctr, int * status) { 
+
+
+
+
+}
+
+
 
 
 /* #######################################################
@@ -561,18 +592,18 @@ void execute_command(struct command_input_t * command_input, int * status, int *
  *  void
  *
  * ######################################################## */
-void signal_handler(int signal_no){ 
+void exec_mode_signal_handler(int signal_no){ 
 
-  if (BLOCKBACKGROUND == false) {  
-    char * message = "----FOREGROUND MODE----\n"; 
+  if (FOREGROUND_ONLY == false) {  
+    char * message = "\n----FOREGROUND MODE----\n"; 
     write(STDOUT_FILENO, message, strlen(message)); 
-    BLOCKBACKGROUND = true;
+    FOREGROUND_ONLY = true;
   } 
   
   else { 
-    char * message = "----ALLOWING BACKGROUND PROCESSES----\n";
+    char * message = "\n----ALLOWING BACKGROUND PROCESSES----\n";
     write(STDERR_FILENO, message, strlen(message)); 
-    BLOCKBACKGROUND = false; 
+    FOREGROUND_ONLY = false; 
   }
 
   return; 
