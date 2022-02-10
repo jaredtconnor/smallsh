@@ -578,8 +578,6 @@ void execute_background(struct command_input_t * command_input, int * status, st
   sigint_action->sa_handler = SIG_DFL; 
   sigaction(SIGINT, sigint_action, NULL); 
 
-  int background_pid = getpid();
-
   // get the arguments for the current arg list
   char ** arguments = get_arguments(command_input->arguments); 
 

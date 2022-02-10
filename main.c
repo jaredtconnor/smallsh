@@ -5,8 +5,6 @@ int main() {
     // driver variables
     struct command_input_t * command_data;
     int status = 0;
-    int background_processes[NUM_PROCESSES] = {0};
-    int background_procsses_ctr = 0;
 
     // setup of signals
     struct sigaction SIGTSTP_action = {0}; 
