@@ -14,6 +14,7 @@ clean:
 	rm -f mytestresults
 	rm -rf *.o
 	rm junk
+	rm junk2
 	rm test*
 
 valgrind:

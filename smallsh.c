@@ -1,7 +1,7 @@
 #include "smallsh.h"
 
-bool BLOCKBACKGROUND = true; 
-pid_t spawnpid = -5; 
+bool FOREGROUND_ONLY = false; 
+pid_t spawnpid = -10; 
 
 /* #######################################################
  * Function: check_comment 
@@ -212,8 +212,6 @@ char * expand_pid(char * command)
 }
 
 
-
-
 /* #######################################################
  * Function: read_input 
  * Reads in stdin and returns a char * to be parsed
@@ -241,6 +239,7 @@ char * read_input(){
   return command;
 
 }
+
 
 /* #######################################################
  * Function: parse_argments   
@@ -328,7 +327,7 @@ struct command_input_t * parse_arguments(char * command) {
     }
 
     // specify as background flag
-    if ((BLOCKBACKGROUND) == true) { 
+    if ((FOREGROUND_ONLY) == true) { 
       command_data->backgroundflag = false; 
     }
 
@@ -336,6 +335,7 @@ struct command_input_t * parse_arguments(char * command) {
     return command_data;
 
 }
+
 
 /* #######################################################
  * Function: execute_built_in_commad   
@@ -383,6 +383,7 @@ void execute_built_in_command(struct command_input_t * command_input, int * stat
 
 }
 
+
 /* #######################################################
  * Function: show_status   
  * Shows a status of exiting child processes
@@ -399,12 +400,12 @@ void execute_built_in_command(struct command_input_t * command_input, int * stat
 void show_status(struct command_input_t * command_input, int* exit_code, bool * foreground_permitted) { 
 
   if(*foreground_permitted) { 
-    printf("Terminated by signal %d\n", *exit_code);
+    printf("[STATUS] Terminated by signal %d\n", *exit_code);
     fflush(stdout); 
   } 
   
   else { 
-    printf("exit value %d\n", *exit_code);
+    printf("[STATUS] Exit value %d\n", *exit_code);
     fflush(stdout); 
   }
 
@@ -413,10 +414,10 @@ void show_status(struct command_input_t * command_input, int* exit_code, bool * 
 }
 
 
-
 /* #######################################################
- * Function: execute_command   
- * Main execution process to execute non - built in commands
+ * Function: execute_fork   
+ * Determines which type of execute to perform, either a background
+ * or foreground function then forks and runs that exec
  * 
  * params: 
  *  1 - struct command_input_t *
@@ -427,8 +428,61 @@ void show_status(struct command_input_t * command_input, int* exit_code, bool * 
  *  void
  *
  * ######################################################## */
-void execute_command(struct command_input_t * command_input, int * status, int * processes, struct sigaction * sigint_action) { 
+void execute_fork(struct command_input_t * command_input, int * status, struct sigaction * sigint_action) { 
 
+  // Run exe in background if flag set and background permitted
+  if(command_input->backgroundflag && !FOREGROUND_ONLY){ 
+
+    // fork new bg child pid
+    pid_t background_process_pid = fork();
+
+    switch (background_process_pid)
+    {
+    case -1:
+      // error on fork()
+      printf("[ERROR] Unable to start background process\n");
+      fflush(stdout); 
+      exit(1);
+
+    case 0: 
+      // child process created, execute
+      execute_background(command_input, status, sigint_action);
+      break;
+
+    default:
+
+      // prinout background pid upon execute 
+      printf("[BACKGROUND] Background pid %d has started\n", background_process_pid);
+      fflush(stdout); 
+      break;
+    }
+
+  }
+
+  else { // Execute in the foreground if else
+    execute_foreground(command_input, status, sigint_action);
+  }
+
+  return;
+
+}
+
+
+/* #######################################################
+ * Function: execute_foreground   
+ * Main exec call to call non built in functions in the foreground
+ * and print/display the results as needed. 
+ * 
+ * params: 
+ *  1 - struct command_input_t *
+ *  2 - int *
+ *  3 - bool * 
+ *
+ * output: 
+ *  void
+ *
+ * ######################################################## */
+void execute_foreground(struct command_input_t * command_input, int * status, struct sigaction * sigint_action) { 
 
   // get the arguments for the current arg list
   char ** arguments = get_arguments(command_input->arguments); 
@@ -444,25 +498,16 @@ void execute_command(struct command_input_t * command_input, int * status, int *
     // if fork successful - child process
     case 0: 
 
-      if (command_input->backgroundflag == false) { 
-        sigint_action->sa_handler = SIG_DFL; 
-        sigaction(SIGINT, sigint_action, NULL); 
-      }
+      sigint_action->sa_handler = SIG_DFL; 
+      sigaction(SIGINT, sigint_action, NULL);
 
       // input redirect
       if (command_input->input_redirect){ 
         int fileinput = open(command_input->infile, O_RDONLY); 
-
-        if (fileinput == -1) {
+        int result = dup2(fileinput, 0); 
+        if (fileinput == -1 || result == -1) {
           perror("[FILE ERROR] Cannot open file\n");
           exit(1); 
-        }
-
-        int result = dup2(fileinput, 0); 
-
-        if(result == -1){ 
-          perror("[FILE ERROR] Cannot open file\n");
-          exit(2); 
         }
 
         fcntl(fileinput, F_SETFD, FD_CLOEXEC); 
@@ -471,17 +516,11 @@ void execute_command(struct command_input_t * command_input, int * status, int *
       // output redirect 
       if (command_input->output_redirect == true) { 
         int filewrite = open(command_input->outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644); 
-
-        if (filewrite == -1) { 
-          perror("[FILE ERROR] Cannot open file\n");
-          exit(1); 
-        }
-
         int result = dup2(filewrite, 1); 
 
-        if(result == -1){ 
+        if (filewrite == -1 || result == -1) { 
           perror("[FILE ERROR] Cannot open file\n");
-          exit(2); 
+          exit(1); 
         }
 
         fcntl(filewrite, F_SETFD, FD_CLOEXEC); 
@@ -497,62 +536,92 @@ void execute_command(struct command_input_t * command_input, int * status, int *
 
     // PARENT PROCESS
     default: 
+      break; 
 
-      // current background process
-      if (command_input->backgroundflag == true) { 
-        printf("[BACKGROUND] PID - %d\n", spawnpid);
-        fflush(stdout); 
-        spawnpid = waitpid(spawnpid, status, WNOHANG); 
-        int i = 0; 
-
-        // add to current process list
-        while(processes[i] != NULL) { 
-          i++; 
-        }
-
-        processes[i] = spawnpid; 
-      }
-      
-      // current foreground process
-      else { 
-        spawnpid = waitpid(spawnpid, status, 0); 
-
-        if (WTERMSIG(*status)) { 
-          printf("[SINGAL] Current child terminated by singal %d\n", WTERMSIG(*status)); 
-          fflush(stdout); 
-        }
-
-        sigint_action->sa_handler = SIG_IGN; 
-        sigaction(SIGINT, sigint_action, NULL);
-      }
-
-      // Waiting for current foreground processes to finish
-      while ((spawnpid = waitpid(-1, status, WNOHANG)) > 0) { 
-
-        if (WIFEXITED(*status)) { 
-          printf("[BACKGROUND] PID - %d is done | EXIT - %d\n", spawnpid, WEXITSTATUS(*status));
-          fflush(stdout); 
-        } 
-        
-        else { 
-          printf("[BACKGROUND] PID - %d is done | SIGNAL - %d\n", spawnpid, WEXITSTATUS(*status));
-          fflush(stdout); 
-        }
-
-        // clean up processes
-        for (int i = 0; i < NUM_PROCESSES; i++) { 
-          if (processes[i] == spawnpid){ 
-            processes[i] = NULL; 
-          }
-        }         
-      }
   }
+
+  // Wait for child to finish
+  spawnpid = waitpid(spawnpid, status, 0); 
+
+  // Terminate based opn signals
+  if (WTERMSIG(*status)) { 
+    printf("\n[SINGAL] Current child terminated by singal %d\n", WTERMSIG(*status)); 
+    fflush(stdout); 
+  }
+
+  else if (WIFEXITED(*status)) { 
+    *status = WEXITSTATUS(*status); 
+  }
+
+  sigint_action->sa_handler = SIG_IGN; 
+  sigaction(SIGINT, sigint_action, NULL);
+
   return; 
 }
 
 
 /* #######################################################
- * Function: singal_handler   
+ * Function: execute_background
+ * executes a background task based on the background flag (i.e. &) 
+ * of the command. Redirects output/input as needed if specified. 
+ * 
+ * 
+ * params: 
+ *  1 - struct command_input_t *
+ *  2 - int * 
+ *  3 - struct sigaction *
+ *
+ * output: 
+ *  void
+ *
+ * ######################################################## */
+void execute_background(struct command_input_t * command_input, int * status, struct sigaction * sigint_action) { 
+
+  sigint_action->sa_handler = SIG_DFL; 
+  sigaction(SIGINT, sigint_action, NULL); 
+
+  // get the arguments for the current arg list
+  char ** arguments = get_arguments(command_input->arguments); 
+
+  // input redirect
+  if (command_input->input_redirect){ 
+    int fileinput = open(command_input->infile, O_RDONLY); 
+    int result = dup2(fileinput, 0); 
+    if (fileinput == -1 || result == -1) {
+      perror("[FILE ERROR] Cannot open file\n");
+      exit(1); 
+    }
+
+    fcntl(fileinput, F_SETFD, FD_CLOEXEC); 
+  }
+
+  // output redirect 
+  if (command_input->output_redirect == true) { 
+    int filewrite = open(command_input->outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644); 
+    int result = dup2(filewrite, 1); 
+
+    if (filewrite == -1 || result == -1) { 
+      perror("[FILE ERROR] Cannot open file\n");
+      exit(1); 
+    }
+
+    fcntl(filewrite, F_SETFD, FD_CLOEXEC); 
+
+  }
+
+  execvp(command_input->command, arguments);
+  perror("\n[EXEC ERROR]\n"); 
+  exit(2); 
+
+  return; 
+
+}
+
+
+/* #######################################################
+ * Function: exec_mode_singal_handler   
+ * Main signal handler function for controlling foreground and
+ * non foreground only mode
  * 
  * params: 
  *  1 - int
@@ -561,42 +630,63 @@ void execute_command(struct command_input_t * command_input, int * status, int *
  *  void
  *
  * ######################################################## */
-void signal_handler(int signal_no){ 
+void exec_mode_signal_handler(int signal_no){ 
 
-  if (BLOCKBACKGROUND == false) {  
-    char * message = "----FOREGROUND MODE----\n"; 
-    write(STDOUT_FILENO, message, strlen(message)); 
-    BLOCKBACKGROUND = true;
+  // cretaing a buffer
+  char message[100]; 
+
+  if (FOREGROUND_ONLY == false) {  
+    FOREGROUND_ONLY = true;
+    char * foreground_mode = "\n----FOREGROUND ONLY MODE----\n"; 
+    strcpy(message, foreground_mode);
   } 
   
   else { 
-    char * message = "----ALLOWING BACKGROUND PROCESSES----\n";
-    write(STDERR_FILENO, message, strlen(message)); 
-    BLOCKBACKGROUND = false; 
+    FOREGROUND_ONLY = false; 
+    char * background_mode = "\n----ALLOWING BACKGROUND PROCESSES----\n";
+    strcpy(message, background_mode);
   }
+
+  strcat(message, ": "); 
+  write(STDOUT_FILENO, message, strlen(message)); 
 
   return; 
 }
 
+
 /* #######################################################
- * Function: kill_shell   
- * iterates through existing background pids and kills them
+ * Function: background_process_status
+ * Prints the status of any remmaining pids that are currently 
+ * being executed in the background once they are completed and 
+ * a new command is processed
  * 
  * params: 
- *  1 - int * 
- *  2 - int *
+ *  void
  *
  * output: 
  *  void
  *
  * ######################################################## */
-void kill_shell(int * processes, int * status) { 
+void background_process_status() { 
 
-    for (int i = 0; i < NUM_PROCESSES; i++) { 
-        if(processes[i]) { 
-            kill(processes[i], SIGTERM); 
-            processes[i] = waitpid(processes[i], status, WNOHANG); 
-        }
+  // wait for pids and setup status
+  int childStatus = -1; 
+  pid_t child_pid = waitpid(-1, &childStatus, WNOHANG);
+
+  while (child_pid > 0) { 
+
+    if (WIFEXITED(childStatus)) {
+      printf("[Background] PID %d is done: exited - %d\n", child_pid, WEXITSTATUS(childStatus));
     }
 
+    else if (WIFSIGNALED(childStatus)) { 
+      printf("[Background] PID %d is done: signaled - %d\n", child_pid, WTERMSIG(childStatus));
+    }
+
+    child_pid = waitpid(-1, &childStatus, WNOHANG);
+  }
+
+  return; 
+
 }
+
