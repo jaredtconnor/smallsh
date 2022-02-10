@@ -498,6 +498,8 @@ void execute_foreground(struct command_input_t * command_input, int * status, st
     // if fork successful - child process
     case 0: 
 
+      sigint_action->sa_handler = SIG_DFL; 
+      sigaction(SIGINT, sigint_action, NULL);
 
       // input redirect
       if (command_input->input_redirect){ 
@@ -543,7 +545,7 @@ void execute_foreground(struct command_input_t * command_input, int * status, st
 
   // Terminate based opn signals
   if (WTERMSIG(*status)) { 
-    printf("[SINGAL] Current child terminated by singal %d\n", WTERMSIG(*status)); 
+    printf("\n[SINGAL] Current child terminated by singal %d\n", WTERMSIG(*status)); 
     fflush(stdout); 
   }
 
@@ -630,17 +632,23 @@ void execute_background(struct command_input_t * command_input, int * status, st
  * ######################################################## */
 void exec_mode_signal_handler(int signal_no){ 
 
+  // cretaing a buffer
+  char message[100]; 
+
   if (FOREGROUND_ONLY == false) {  
-    char * message = "\n----FOREGROUND MODE----\n"; 
-    write(STDOUT_FILENO, message, strlen(message)); 
     FOREGROUND_ONLY = true;
+    char * foreground_mode = "\n----FOREGROUND MODE----\n"; 
+    strcpy(message, foreground_mode);
   } 
   
   else { 
-    char * message = "\n----ALLOWING BACKGROUND PROCESSES----\n";
-    write(STDERR_FILENO, message, strlen(message)); 
     FOREGROUND_ONLY = false; 
+    char * background_mode = "\n----ALLOWING BACKGROUND PROCESSES----\n";
+    strcpy(message, background_mode);
   }
+
+  strcat(message, ": "); 
+  write(STDOUT_FILENO, message, strlen(message)); 
 
   return; 
 }
