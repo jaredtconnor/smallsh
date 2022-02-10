@@ -60,7 +60,7 @@ int main() {
         // execute other commands
         else { 
 
-            execute_command(command_data, &status, background_processes, &background_procsses_ctr, &SIGINT_action); 
+            execute_fork(command_data, &status, background_processes, &background_procsses_ctr, &SIGINT_action); 
 
         }
 
